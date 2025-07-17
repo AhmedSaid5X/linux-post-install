@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=تشغيل الإعداد
+Comment=تشغيل السكربت من نفس الفولدر
+Exec=bash -c 'cd "$(dirname "%k")" && ./".fedora-post-install-essential V1.1.sh"; echo; echo "✅ السكربت خلص. اضغط Enter للخروج..."; read'
+Icon=utilities-terminal
+Terminal=true
+Type=Application
+Categories=Utility;
