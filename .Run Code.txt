@@ -1,2 +1,0 @@
-chmod +x ".fedora-post-install-essential V1.1.sh"
-./".fedora-post-install-essential V1.1.sh"
