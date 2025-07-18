@@ -81,6 +81,17 @@ if [[ "$DESKTOP_ENV" == *"xfce"* || "$DESKTOP_ENV" == *"lxqt"* ]]; then
   DESKTOP_FILE="$HOME/.local/share/applications/bauh.desktop"
   ICON_NAME="system-software-install"
 
+  # 🔍 تحقق من وجود libfuse.so.2
+  if ! ldconfig -p | grep -q 'libfuse.so.2'; then
+    echo "⚠️ libfuse.so.2 غير موجودة، بيتم تثبيت fuse-libs..."
+    sudo dnf install -y fuse-libs || {
+      echo "❌ فشل التثبيت. bauh مش هيشتغل بدون FUSE."
+      exit 1
+    }
+  else
+    echo "✅ libfuse.so.2 موجودة."
+  fi
+
   mkdir -p "$INSTALL_DIR" "$(dirname "$DESKTOP_FILE")"
 
   echo "📦 تحميل أحدث إصدار من bauh..."
@@ -108,7 +119,7 @@ EOF
 
   echo "✅ تم تثبيت bauh بنجاح."
 else
-  echo "⏭️ البيئة ليست XFCE أو LXQt، تم تخطي bauh."
+  echo "⏭️ البيئة ليست XFCE أو LXQt، تم تخطى bauh."
 fi
 
 ### 9. سؤال عن إعادة التشغيل
