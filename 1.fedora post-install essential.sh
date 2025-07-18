@@ -33,9 +33,23 @@ sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 echo "🎧 تحديث multimedia group..."
 sudo dnf update @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
 
-# 6. إصلاح مشاكل الثامبنيلز في GNOME فقط
-DESKTOP_ENV=$(echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]')
+# 6. كشف بيئة سطح المكتب الحالية
+DESKTOP_ENV=$(echo "${XDG_CURRENT_DESKTOP,,}") # يخليها كلها lowercase
 
+echo "🖥️ بيئة سطح المكتب الحالية: $DESKTOP_ENV"
+
+# 7. تثبيت App Store المناسب حسب البيئة
+if [[ "$DESKTOP_ENV" == *"xfce"* ]]; then
+  echo "🛍️ Xfce detected: تثبيت gnome-software..."
+  sudo dnf install -y gnome-software
+elif [[ "$DESKTOP_ENV" == *"lxqt"* ]]; then
+  echo "🛍️ LXQt detected: تثبيت plasma-discover..."
+  sudo dnf install -y plasma-discover
+else
+  echo "ℹ️ لم يتم الكشف عن Xfce أو LXQt، تخطى تثبيت App Store."
+fi
+
+# 8. إصلاح مشاكل الثامبنيلز في GNOME فقط
 if [[ "$DESKTOP_ENV" == *"gnome"* ]]; then
   echo "🔧 GNOME detected: إصلاح مشاكل الثامبنيلز..."
   sudo dnf install -y \
@@ -64,13 +78,13 @@ else
   echo "ℹ️ بيئة سطح المكتب ليست GNOME، تخطى خطوة إصلاح الثامبنيلز."
 fi
 
-# 7. تثبيت fastfetch لو مش موجود
+# 9. تثبيت fastfetch لو مش موجود
 if ! command -v fastfetch &>/dev/null; then
   echo "📥 تثبيت fastfetch..."
   sudo dnf install -y fastfetch
 fi
 
-# 8. سؤال المستخدم عن إعادة التشغيل
+# 10. سؤال المستخدم عن إعادة التشغيل
 read -p "🔁 هل تريد إعادة تشغيل الجهاز الآن؟ [y/N]: " answer
 if [[ "$answer" =~ ^[Yy]$ ]]; then
   echo "🔄 جارِ إعادة تشغيل الجهاز..."
