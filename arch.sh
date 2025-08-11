@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-echo "🚀 بدء تثبيت خطوط Arch + دعم العربي..."
+echo "🚀 بدء تثبيت الخطوط + البرامج..."
 
 # تثبيت الخطوط من المستودعات الرسمية
 echo "📦 تثبيت الخطوط من المستودع الرسمي..."
 sudo pacman -S --needed --noconfirm noto-fonts noto-fonts-emoji noto-fonts-extra ttf-dejavu ttf-liberation ttf-scheherazade-new
 
-# تثبيت الخطوط من AUR (تأكد من وجود yay)
+# تثبيت yay لو مش موجود (AUR helper)
 if ! command -v yay &>/dev/null; then
   echo "🛠️ تثبيت yay (AUR helper)..."
   sudo pacman -S --needed --noconfirm git base-devel
@@ -22,43 +22,48 @@ fi
 echo "📦 تثبيت خطوط من AUR..."
 yay -S --needed --noconfirm ttf-amiri ttf-sil-harmattan
 
-echo "🚀 تثبيت البرامج المطلوبة..."
+echo "🚀 تثبيت البرامج الرسمية..."
 
-# قائمة البرامج الرسمية من مستودعات Arch (مع telegram-desktop)
 OFFICIAL_PACKAGES=(
   fastfetch
   flatpak
   mpv
+  telegram-desktop
+  discord
+  mkvtoolnix-cli
+  qbittorrent
   podman-desktop
   curl
-  mkvtoolnix-cli
-  telegram-desktop
 )
 
-# تثبيت البرامج الرسمية
 for pkg in "${OFFICIAL_PACKAGES[@]}"; do
   echo "تثبيت $pkg ..."
   sudo pacman -S --needed --noconfirm "$pkg"
 done
 
-# برامج من AUR
+echo "🚀 تثبيت برامج من AUR..."
+
 AUR_PACKAGES=(
   spotify
   subtitlecomposer
   upscayl
+  flatseal
+  jellyfin-media-player
+  jellyfin-mpv-shim
+  warehouse-bin
+  mission-center-bin
 )
 
-echo "📦 تثبيت برامج من AUR..."
 for pkg in "${AUR_PACKAGES[@]}"; do
   echo "تثبيت $pkg ..."
   yay -S --needed --noconfirm "$pkg"
 done
 
-# تأكد من تثبيت flatpak
+# تأكد من تثبيت flatpak (لو حصل مشكلة)
 if ! command -v flatpak &>/dev/null; then
   echo "🛠️ تثبيت flatpak..."
   sudo pacman -S --needed --noconfirm flatpak
 fi
 
-echo "✅ السكربت خلص. اضغط Enter للخروج..."
+echo "✅ انتهى التثبيت. اضغط Enter للخروج..."
 read -r
