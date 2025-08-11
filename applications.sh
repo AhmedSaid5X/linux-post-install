@@ -7,8 +7,10 @@ echo "🚀 بدء التثبيت من Flathub..."
 # تحديد مدير الحزم حسب التوزيعة
 if command -v dnf &>/dev/null; then
   PKG_INSTALL="sudo dnf install -y"
+  DISTRO="fedora"
 elif command -v pacman &>/dev/null; then
   PKG_INSTALL="sudo pacman -S --needed --noconfirm"
+  DISTRO="arch"
 else
   echo "❌ مدير الحزم مش مدعوم، السكربت شغال على Fedora أو Arch بس."
   exit 1
@@ -71,12 +73,26 @@ for app in "${apps[@]}"; do
 done
 
 # تثبيت tailscale
-if command -v pacman &>/dev/null; then
-  echo "🐦 تثبيت tailscale من pacman..."
+echo "🐦 تثبيت tailscale..."
+if [[ "$DISTRO" == "fedora" ]]; then
+  echo "➕ إضافة مستودع tailscale الرسمي لفيدورا..."
+  sudo dnf config-manager --add-repo https://pkgs.tailscale.com/stable/fedora/tailscale.repo
   $PKG_INSTALL tailscale
-elif command -v dnf &>/dev/null; then
-  echo "🐦 تثبيت tailscale من dnf..."
-  $PKG_INSTALL tailscale
+
+elif [[ "$DISTRO" == "arch" ]]; then
+  if ! command -v yay &>/dev/null; then
+    echo "🛠️ جارِ تثبيت yay (AUR helper)..."
+    $PKG_INSTALL git base-devel
+    git clone https://aur.archlinux.org/yay.git
+    cd yay
+    makepkg -si --noconfirm
+    cd ..
+    rm -rf yay
+  else
+    echo "✅ yay موجود بالفعل، تخطى التثبيت."
+  fi
+
+  yay -S --noconfirm tailscale-bin
 fi
 
 echo "✅ تم التثبيت بنجاح!"
