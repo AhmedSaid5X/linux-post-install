@@ -31,7 +31,7 @@ interactive_config() {
     read -rp "📁 cache dir: " CACHE_DIR
     read -rp "📁 anime dir: " ANIME_DIR
     read -rp "📁 movies dir: " MOVIES_DIR
-    read -rp "📁 TV shows dir: " TVSHOWS_DIR
+    read -rp "📁 TV shows dir (مثلاً /path/to/tvshows): " TVSHOWS_DIR
 
     read -rp "⬇️ تسحب أحدث نسخة من الصورة؟ [y/N]: " PULL_IMAGE
     read -rp "⚙️ تفعيل auto-update؟ [y/N]: " ENABLE_AUTOUPDATE
@@ -69,16 +69,19 @@ remove_old_container() {
 
 run_container() {
     echo "🚀 تشغيل Jellyfin..."
+
+    # على Arch عادة SELinux مش مفعّل، فمش هنستخدم :Z ولا relabel
+
     podman run -d \
         --name "$CONTAINER_NAME" \
         --label "io.containers.autoupdate=registry" \
         --publish 8096:8096 \
         --userns keep-id \
-        --volume "$CONFIG_DIR":/config:Z \
-        --volume "$CACHE_DIR":/cache:Z \
-        --mount type=bind,source="$ANIME_DIR",target=/anime,ro=true,relabel=private \
-        --mount type=bind,source="$MOVIES_DIR",target=/movies,ro=true,relabel=private \
-        --mount type=bind,source="$TVSHOWS_DIR",target="/tv shows",ro=true,relabel=private \
+        --volume "$CONFIG_DIR":/config:rw \
+        --volume "$CACHE_DIR":/cache:rw \
+        --mount type=bind,source="$ANIME_DIR",target=/anime,readonly=true \
+        --mount type=bind,source="$MOVIES_DIR",target=/movies,readonly=true \
+        --mount type=bind,source="$TVSHOWS_DIR",target=/tvshows,readonly=true \
         "$IMAGE"
 }
 
@@ -87,7 +90,7 @@ generate_service() {
     SERVICE_FILE="container-$CONTAINER_NAME.service"
     podman generate systemd --name "$CONTAINER_NAME" --files --restart-policy=always
 
-    # تعديل المسارات اللى فيها مسافات
+    # تعديل المسارات اللى فيها مسافات (لو موجودة)
     sed -i -E 's/(source|target)=(([^" ]+)[^"]*[^" ]+)/\1="\2"/g' "$SERVICE_FILE"
 
     mkdir -p ~/.config/systemd/user
@@ -126,7 +129,9 @@ enable_linger_and_service() {
 
 enable_auto_update() {
     if [[ "${ENABLE_AUTOUPDATE,,}" == "y" || "${ENABLE_AUTOUPDATE,,}" == "yes" || "${ENABLE_AUTOUPDATE,,}" == "true" ]]; then
-        sudo systemctl enable --now podman-auto-update.timer
+        echo "✅ تفعيل auto-update..."
+        # على Arch podman-auto-update timer شغال على مستوى المستخدم user
+        systemctl --user enable --now podman-auto-update.timer
         echo "✅ auto-update شغّالة!"
     else
         echo "ℹ️ auto-update مش مفعّل."
