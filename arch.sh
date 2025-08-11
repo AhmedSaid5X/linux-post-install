@@ -31,5 +31,34 @@ yay -S --needed --noconfirm \
   ttf-amiri \
   ttf-sil-harmattan
 
-echo "✅ تم تثبيت كل الخطوط بنجاح."
-echo "ℹ️ اعمل Log out أو ريستارت عشان التغييرات تتفعل."
+echo "🚀 تثبيت البرامج المطلوبة..."
+
+# تثبيت البرامج من الريبو الرسمي
+sudo pacman -S --needed --noconfirm \
+  fastfetch \
+  flatpak \
+  mpv \
+  telegram-desktop \
+  discord \
+  mkvtoolnix \
+  qbittorrent \
+  spotify \
+  subtitlecomposer \
+  upscayl \
+  podman-desktop \
+  curl
+
+# تثبيت البرامج من الـ AUR عبر yay
+yay -S --needed --noconfirm \
+  flatseal \
+  jellyfin-media-player \
+  jellyfin-mpv-shim \
+  warehouse-bin \
+  mission-center-bin
+
+# تثبيت tailscale عن طريق السكربت الرسمي
+echo "🌐 تثبيت tailscale..."
+curl -fsSL https://tailscale.com/install.sh | sh
+
+echo "✅ تم تثبيت كل الخطوط والبرامج بنجاح."
+echo "ℹ️ يُفضل تعمل Log out أو ريستارت عشان التغييرات تتفعل."
