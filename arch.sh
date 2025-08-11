@@ -1,64 +1,43 @@
 #!/bin/bash
 set -e
 
-echo "🚀 تثبيت خطوط Arch + دعم العربى..."
-
-# --- تثبيت yay لو مش موجود ---
+# نتأكد إن yay موجود، لو مش موجود نثبته
 if ! command -v yay &>/dev/null; then
   echo "🛠️ تثبيت yay (AUR helper)..."
   sudo pacman -S --needed --noconfirm git base-devel
   tmpdir=$(mktemp -d)
-  git clone https://aur.archlinux.org/yay-bin.git "$tmpdir/yay-bin"
-  cd "$tmpdir/yay-bin"
+  git clone https://aur.archlinux.org/yay-bin.git "$tmpdir"
+  cd "$tmpdir"
   makepkg -si --noconfirm
-  cd ~
+  cd -
   rm -rf "$tmpdir"
 fi
 
-# --- تثبيت خطوط من الريبو الرسمى ---
-echo "📦 تثبيت الخطوط من المستودع الرسمى..."
-sudo pacman -S --needed --noconfirm \
-  noto-fonts \
-  noto-fonts-emoji \
-  noto-fonts-extra \
-  ttf-dejavu \
-  ttf-liberation \
-  ttf-scheherazade-new
+# تثبيت البرامج من AUR
+AUR_PACKAGES=(
+  spotify
+  subtitlecomposer
+  upscayl
+)
 
-# --- تثبيت خطوط من الـ AUR ---
-echo "📦 تثبيت الخطوط من الـ AUR..."
-yay -S --needed --noconfirm \
-  ttf-amiri \
-  ttf-sil-harmattan
+echo "📦 تثبيت برامج من AUR..."
+for pkg in "${AUR_PACKAGES[@]}"; do
+  echo "تثبيت $pkg ..."
+  yay -S --needed --noconfirm "$pkg"
+done
 
-echo "🚀 تثبيت البرامج المطلوبة..."
+# تثبيت mkvtoolnix من المستودع الرسمي (community)
+echo "📦 تثبيت mkvtoolnix من المستودع الرسمي..."
+sudo pacman -S --needed --noconfirm mkvtoolnix-cli
 
-# تثبيت البرامج من الريبو الرسمي
-sudo pacman -S --needed --noconfirm \
-  fastfetch \
-  flatpak \
-  mpv \
-  telegram-desktop \
-  discord \
-  mkvtoolnix \
-  qbittorrent \
-  spotify \
-  subtitlecomposer \
-  upscayl \
-  podman-desktop \
-  curl
+# تثبيت Flatpak إذا مش موجود
+if ! command -v flatpak &>/dev/null; then
+  echo "🛠️ تثبيت flatpak..."
+  sudo pacman -S --needed --noconfirm flatpak
+fi
 
-# تثبيت البرامج من الـ AUR عبر yay
-yay -S --needed --noconfirm \
-  flatseal \
-  jellyfin-media-player \
-  jellyfin-mpv-shim \
-  warehouse-bin \
-  mission-center-bin
+# تثبيت بعض البرامج عن طريق Flatpak لو محتاج
+# (مثلاً ممكن تضيف برامج مش متوفرة في AUR أو مستودعات)
+# flatpak install -y flathub some.flatpak.App
 
-# تثبيت tailscale عن طريق السكربت الرسمي
-echo "🌐 تثبيت tailscale..."
-curl -fsSL https://tailscale.com/install.sh | sh
-
-echo "✅ تم تثبيت كل الخطوط والبرامج بنجاح."
-echo "ℹ️ يُفضل تعمل Log out أو ريستارت عشان التغييرات تتفعل."
+echo "✅ تم التثبيت بنجاح."
