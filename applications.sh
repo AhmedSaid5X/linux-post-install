@@ -66,10 +66,10 @@ else
   echo "🧹 تخطى أدوات GNOME (الواجهة مش GNOME)."
 fi
 
-# تثبيت البرامج من Flathub
+# تثبيت البرامج من Flathub بدون توقف
 for app in "${apps[@]}"; do
   echo "📦 تثبيت $app ..."
-  flatpak install -y flathub "$app"
+  flatpak install -y --noninteractive flathub "$app"
 done
 
 # تثبيت tailscale
