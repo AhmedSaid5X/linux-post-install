@@ -43,7 +43,7 @@ aur_has_package() {
 
 # تحقق إذا الحزمة موجودة كـ flatpak
 flatpak_has_package() {
-  flatpak remote-ls flathub | grep -q "$1"
+  flatpak remote-ls flathub | grep -qw "$1"
 }
 
 # تثبيت برنامج بالترتيب: pacman -> yay -> flatpak
@@ -84,7 +84,7 @@ sudo pacman -S --needed --noconfirm noto-fonts noto-fonts-emoji noto-fonts-extra
 install_yay
 yay -S --needed --noconfirm ttf-amiri ttf-sil-harmattan
 
-# قائمة البرامج مع flatpak refs لو موجود
+# قائمة البرامج مع flatpak refs لو موجود (بالأسماء الصحيحة من Flathub)
 declare -A packages=(
   [fastfetch]=""
   [flatpak]=""
@@ -94,15 +94,15 @@ declare -A packages=(
   [mkvtoolnix-cli]=""
   [qbittorrent]="org.qbittorrent.qBittorrent"
   [spotify]="com.spotify.Client"
-  [subtitlecomposer]=""
-  [upscayl]=""
+  [subtitlecomposer]="org.subtitlecomposer.SubtitleComposer"
+  [upscayl]="io.github.upscayl.UpScayl"
   [podman-desktop]=""
   [curl]=""
   [flatseal]="com.github.tchx84.Flatseal"
-  [jellyfin-media-player]=""
+  [jellyfin-media-player]="org.jellyfin.MediaPlayer"
   [jellyfin-mpv-shim]=""
-  [warehouse-bin]=""
-  [mission-center-bin]=""
+  [warehouse-bin]="org.warehouse.Warehouse"
+  [mission-center-bin]="org.missioncenter.MissionCenter"
 )
 
 echo "🚀 تثبيت البرامج..."
@@ -112,4 +112,4 @@ for pkg in "${!packages[@]}"; do
 done
 
 echo "✅ انتهى التثبيت. اضغط Enter للخروج..."
-read -r
+read -r -p ""
