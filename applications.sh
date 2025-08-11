@@ -4,10 +4,20 @@ set -e
 
 echo "🚀 بدء التثبيت من Flathub..."
 
+# تحديد مدير الحزم حسب التوزيعة
+if command -v dnf &>/dev/null; then
+  PKG_INSTALL="sudo dnf install -y"
+elif command -v pacman &>/dev/null; then
+  PKG_INSTALL="sudo pacman -S --needed --noconfirm"
+else
+  echo "❌ مدير الحزم مش مدعوم، السكربت شغال على Fedora أو Arch بس."
+  exit 1
+fi
+
 # التأكد إن flatpak متسطب
 if ! command -v flatpak &> /dev/null; then
   echo "🛠️ جارِ تثبيت flatpak..."
-  sudo dnf install -y flatpak
+  $PKG_INSTALL flatpak
 fi
 
 # إضافة Flathub لو مش متضاف
@@ -20,10 +30,10 @@ fi
 desktop_env=$(echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]')
 echo "🖥️ الواجهة الحالية: $desktop_env"
 
-# لو الواجهة GNOME، نسطب gnome-tweaks من dnf الأول
+# لو الواجهة GNOME، نسطب gnome-tweaks
 if [[ "$desktop_env" == *gnome* ]]; then
-  echo "🛠️ جارِ تثبيت GNOME Tweaks من DNF..."
-  sudo dnf install -y gnome-tweaks
+  echo "🛠️ جارِ تثبيت GNOME Tweaks..."
+  $PKG_INSTALL gnome-tweaks
 fi
 
 # قائمة البرامج الأساسية من Flathub
@@ -60,8 +70,13 @@ for app in "${apps[@]}"; do
   flatpak install -y flathub "$app"
 done
 
-# تثبيت tailscale في الآخر
-echo "🐦 تثبيت tailscale (هيحتاج تدخل يدوي)..."
-curl -fsSL https://tailscale.com/install.sh | sh
+# تثبيت tailscale
+if command -v pacman &>/dev/null; then
+  echo "🐦 تثبيت tailscale من pacman..."
+  $PKG_INSTALL tailscale
+elif command -v dnf &>/dev/null; then
+  echo "🐦 تثبيت tailscale من dnf..."
+  $PKG_INSTALL tailscale
+fi
 
 echo "✅ تم التثبيت بنجاح!"
