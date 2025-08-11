@@ -1,85 +1,35 @@
 #!/bin/bash
-
 set -e
 
-echo "🚀 بدء التثبيت من Flathub على Arch (بلا توقف)..."
+echo "🚀 تثبيت خطوط Arch + دعم العربى..."
 
-# التأكد إن flatpak متسطب
-if ! command -v flatpak &> /dev/null; then
-  echo "🛠️ جارِ تثبيت flatpak..."
-  sudo pacman -S --needed --noconfirm flatpak
-fi
-
-# التأكد إن yay متسطب (AUR helper)
-if ! command -v yay &> /dev/null; then
-  echo "🛠️ جارِ تثبيت yay..."
+# --- تثبيت yay لو مش موجود ---
+if ! command -v yay &>/dev/null; then
+  echo "🛠️ تثبيت yay (AUR helper)..."
   sudo pacman -S --needed --noconfirm git base-devel
-  git clone https://aur.archlinux.org/yay.git
-  cd yay
+  tmpdir=$(mktemp -d)
+  git clone https://aur.archlinux.org/yay-bin.git "$tmpdir/yay-bin"
+  cd "$tmpdir/yay-bin"
   makepkg -si --noconfirm
-  cd ..
-  rm -rf yay
+  cd ~
+  rm -rf "$tmpdir"
 fi
 
-# إضافة Flathub لو مش متضاف
-if ! flatpak remotes | grep -q flathub; then
-  echo "➕ إضافة Flathub..."
-  flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-fi
+# --- تثبيت خطوط من الريبو الرسمى ---
+echo "📦 تثبيت الخطوط من المستودع الرسمى..."
+sudo pacman -S --needed --noconfirm \
+  noto-fonts \
+  noto-fonts-emoji \
+  noto-fonts-extra \
+  ttf-dejavu \
+  ttf-liberation \
+  ttf-scheherazade-new
 
-# تثبيت الـ runtimes المهمة (اللي بتتطلبها برامج كتير)
-echo "⬇ تحميل runtimes أساسية لـ Flatpak..."
-flatpak install -y --noninteractive flathub \
-  org.gnome.Platform//48 \
-  org.gnome.Platform.Locale//48 \
-  org.freedesktop.Platform.openh264//2.5.1
+# --- تثبيت خطوط من الـ AUR ---
+echo "📦 تثبيت الخطوط من الـ AUR..."
+yay -S --needed --noconfirm \
+  ttf-amiri \
+  ttf-sil-harmattan
 
-# تحديد نوع الواجهة
-desktop_env=$(echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]')
-echo "🖥️ الواجهة الحالية: $desktop_env"
-
-# لو الواجهة GNOME، نسطب gnome-tweaks
-if [[ "$desktop_env" == *gnome* ]]; then
-  echo "🛠️ جارِ تثبيت GNOME Tweaks..."
-  sudo pacman -S --needed --noconfirm gnome-tweaks
-fi
-
-# قائمة البرامج الأساسية من Flathub
-apps=(
-  com.visualstudio.code
-  org.telegram.desktop
-  com.discordapp.Discord
-  com.github.tchx84.Flatseal
-  com.heroicgameslauncher.hgl
-  com.github.iwalton3.jellyfin-media-player
-  com.github.iwalton3.jellyfin-mpv-shim
-  org.bunkus.mkvtoolnix-gui
-  org.qbittorrent.qBittorrent
-  com.spotify.Client
-  org.kde.subtitlecomposer
-  io.github.flattool.Warehouse
-  org.upscayl.Upscayl
-  io.missioncenter.MissionCenter
-  io.podman_desktop.PodmanDesktop
-  io.mpv.Mpv
-)
-
-# لو GNOME نضيف Extension Manager
-if [[ "$desktop_env" == *gnome* ]]; then
-  echo "🧩 إضافة Extension Manager..."
-  apps+=(com.mattjakeman.ExtensionManager)
-else
-  echo "🧹 تخطى أدوات GNOME (الواجهة مش GNOME)."
-fi
-
-# تثبيت البرامج من Flathub بدون طلب تأكيد
-for app in "${apps[@]}"; do
-  echo "📦 تثبيت $app ..."
-  flatpak install -y --noninteractive flathub "$app"
-done
-
-# تثبيت tailscale (من AUR)
-echo "🐦 تثبيت tailscale..."
-yay -S --needed --noconfirm tailscale
-
-echo "✅ تم التثبيت بنجاح!"
+echo "✅ تم تثبيت كل الخطوط بنجاح."
+echo "ℹ️ اعمل Log out أو ريستارت عشان التغييرات تتفعل."
