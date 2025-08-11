@@ -2,7 +2,7 @@
 
 set -e
 
-echo "🚀 بدء التثبيت من Flathub على Arch..."
+echo "🚀 بدء التثبيت من Flathub على Arch (بلا توقف)..."
 
 # التأكد إن flatpak متسطب
 if ! command -v flatpak &> /dev/null; then
@@ -26,6 +26,13 @@ if ! flatpak remotes | grep -q flathub; then
   echo "➕ إضافة Flathub..."
   flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 fi
+
+# تثبيت الـ runtimes المهمة (اللي بتتطلبها برامج كتير)
+echo "⬇ تحميل runtimes أساسية لـ Flatpak..."
+flatpak install -y --noninteractive flathub \
+  org.gnome.Platform//48 \
+  org.gnome.Platform.Locale//48 \
+  org.freedesktop.Platform.openh264//2.5.1
 
 # تحديد نوع الواجهة
 desktop_env=$(echo "$XDG_CURRENT_DESKTOP" | tr '[:upper:]' '[:lower:]')
@@ -65,10 +72,10 @@ else
   echo "🧹 تخطى أدوات GNOME (الواجهة مش GNOME)."
 fi
 
-# تثبيت البرامج من Flathub
+# تثبيت البرامج من Flathub بدون طلب تأكيد
 for app in "${apps[@]}"; do
   echo "📦 تثبيت $app ..."
-  flatpak install -y flathub "$app"
+  flatpak install -y --noninteractive flathub "$app"
 done
 
 # تثبيت tailscale (من AUR)
