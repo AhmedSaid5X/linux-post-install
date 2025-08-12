@@ -31,12 +31,18 @@ add_flathub_repo() {
   fi
 }
 
-echo "🚀 تثبيت yay والخطوط..."
+echo "🚀 تثبيت yay والخطوط والبرامج المطلوبة..."
 
 install_yay
 
-sudo pacman -S --needed --noconfirm noto-fonts noto-fonts-emoji noto-fonts-extra ttf-dejavu ttf-liberation ttf-scheherazade-new
-yay -S --needed --noconfirm ttf-amiri ttf-sil-harmattan
+# تحديث النظام وتثبيت الحزم المطلوبة من pacman
+sudo pacman -Syu --needed --noconfirm \
+  noto-fonts noto-fonts-emoji noto-fonts-extra \
+  ttf-dejavu ttf-liberation ttf-scheherazade-new \
+  mpv mkvtoolnix-gui
+
+# تثبيت خطوط إضافية وحزم من AUR
+yay -S --needed --noconfirm ttf-amiri ttf-sil-harmattan ffmpegthumbs-git
 
 install_flatpak
 add_flathub_repo
