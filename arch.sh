@@ -26,7 +26,7 @@ fi
 
 # تثبيت حزم من AUR
 yay -S --needed --noconfirm \
-  ttf-amiri ttf-sil-harmattan ffmpegthumbs-git
+  ttf-amiri ttf-sil-harmattan ffmpegthumbs-git autosubsync-bin
 
 echo "🧹 بدء التنظيف..."
 
