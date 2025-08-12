@@ -12,7 +12,7 @@ sudo pacman -S --needed --noconfirm \
   git base-devel pacman-contrib \
   noto-fonts noto-fonts-emoji noto-fonts-extra \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
-  mpv mkvtoolnix-gui firefox
+  mpv mkvtoolnix-gui firefox qbittorrent
 
 # تثبيت yay لو مش موجود
 if ! command -v yay &>/dev/null; then
