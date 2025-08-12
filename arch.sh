@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# تأكد من وجود yay (AUR helper)
+### 1. التأكد من وجود yay ###
 install_yay() {
   if ! command -v yay &>/dev/null; then
     echo "🛠️ تثبيت yay (AUR helper)..."
@@ -15,7 +15,7 @@ install_yay() {
   fi
 }
 
-# تأكد من وجود flatpak
+### 2. التأكد من وجود flatpak ###
 install_flatpak() {
   if ! command -v flatpak &>/dev/null; then
     echo "🛠️ تثبيت flatpak..."
@@ -23,7 +23,7 @@ install_flatpak() {
   fi
 }
 
-# إضافة مستودع Flathub لو مش مضاف
+### 3. إضافة Flathub ###
 add_flathub_repo() {
   if ! flatpak remote-list | grep -q "^flathub$"; then
     echo "🌐 إضافة مستودع Flathub..."
@@ -31,21 +31,57 @@ add_flathub_repo() {
   fi
 }
 
+### 4. تثبيت البرامج ###
 echo "🚀 تثبيت yay والخطوط والبرامج المطلوبة..."
-
 install_yay
 
-# تحديث النظام وتثبيت الحزم المطلوبة من pacman
 sudo pacman -Syu --needed --noconfirm \
   noto-fonts noto-fonts-emoji noto-fonts-extra \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
   mpv mkvtoolnix-gui
 
-# تثبيت خطوط إضافية وحزم من AUR
 yay -S --needed --noconfirm ttf-amiri ttf-sil-harmattan ffmpegthumbs-git
 
 install_flatpak
 add_flathub_repo
 
-echo "✅ انتهى التثبيت. اضغط Enter للخروج..."
-read -r -p ""
+### 5. تنظيف النظام ###
+echo "🚀 بدء تنظيف نظام Arch Linux..."
+
+# التأكد من وجود pacman-contrib
+if ! command -v paccache &>/dev/null; then
+    echo "🛠️ تثبيت pacman-contrib..."
+    sudo pacman -S --noconfirm pacman-contrib
+fi
+
+echo "🗑️ تنظيف كاش pacman..."
+sudo paccache -r
+
+echo "🧹 حذف الحزم اليتيمة..."
+orphans=$(pacman -Qtdq || true)
+if [[ -n "$orphans" ]]; then
+    sudo pacman -Rns --noconfirm $orphans
+else
+    echo "✅ مفيش حزم يتييمة."
+fi
+
+if command -v yay &>/dev/null; then
+    echo "🗑️ تنظيف كاش AUR..."
+    yay -Sc --noconfirm
+fi
+
+echo "🗄️ تنظيف الـ logs..."
+sudo journalctl --vacuum-time=7d
+
+if command -v flatpak &>/dev/null; then
+    echo "📦 تنظيف flatpak..."
+    flatpak uninstall --unused -y
+fi
+
+if command -v snap &>/dev/null; then
+    echo "📦 تنظيف snap..."
+    sudo snap set system refresh.retain=2
+    sudo snap remove --purge $(snap list --all | awk '/disabled/{print $1, $2}')
+fi
+
+echo "✨ تم التثبيت والتنظيف بنجاح! 🚀"
