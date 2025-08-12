@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-### 1. التأكد من وجود yay ###
+### دالة تثبيت yay ###
 install_yay() {
   if ! command -v yay &>/dev/null; then
     echo "🛠️ تثبيت yay (AUR helper)..."
@@ -15,7 +15,7 @@ install_yay() {
   fi
 }
 
-### 2. التأكد من وجود flatpak ###
+### دالة تثبيت Flatpak ###
 install_flatpak() {
   if ! command -v flatpak &>/dev/null; then
     echo "🛠️ تثبيت flatpak..."
@@ -23,7 +23,7 @@ install_flatpak() {
   fi
 }
 
-### 3. إضافة Flathub ###
+### دالة إضافة Flathub ###
 add_flathub_repo() {
   if ! flatpak remote-list | grep -q "^flathub$"; then
     echo "🌐 إضافة مستودع Flathub..."
@@ -31,57 +31,68 @@ add_flathub_repo() {
   fi
 }
 
-### 4. تثبيت البرامج ###
-echo "🚀 تثبيت yay والخطوط والبرامج المطلوبة..."
-install_yay
+### دالة التثبيت ###
+install_all() {
+  echo "🚀 بدء تثبيت كل البرامج والخطوط المطلوبة..."
+  install_yay
 
-sudo pacman -Syu --needed --noconfirm \
-  noto-fonts noto-fonts-emoji noto-fonts-extra \
-  ttf-dejavu ttf-liberation ttf-scheherazade-new \
-  mpv mkvtoolnix-gui
+  sudo pacman -Syu --needed --noconfirm \
+    noto-fonts noto-fonts-emoji noto-fonts-extra \
+    ttf-dejavu ttf-liberation ttf-scheherazade-new \
+    mpv mkvtoolnix-gui firefox
 
-yay -S --needed --noconfirm ttf-amiri ttf-sil-harmattan ffmpegthumbs-git
+  yay -S --needed --noconfirm \
+    ttf-amiri ttf-sil-harmattan ffmpegthumbs-git
 
-install_flatpak
-add_flathub_repo
+  install_flatpak
+  add_flathub_repo
+}
 
-### 5. تنظيف النظام ###
-echo "🚀 بدء تنظيف نظام Arch Linux..."
+### دالة التنظيف ###
+clean_system() {
+  echo "🧹 بدء تنظيف النظام..."
 
-# التأكد من وجود pacman-contrib
-if ! command -v paccache &>/dev/null; then
-    echo "🛠️ تثبيت pacman-contrib..."
-    sudo pacman -S --noconfirm pacman-contrib
-fi
+  # pacman-contrib
+  if ! command -v paccache &>/dev/null; then
+      echo "🛠️ تثبيت pacman-contrib..."
+      sudo pacman -S --noconfirm pacman-contrib
+  fi
 
-echo "🗑️ تنظيف كاش pacman..."
-sudo paccache -r
+  echo "🗑️ تنظيف كاش pacman..."
+  sudo paccache -r
 
-echo "🧹 حذف الحزم اليتيمة..."
-orphans=$(pacman -Qtdq || true)
-if [[ -n "$orphans" ]]; then
-    sudo pacman -Rns --noconfirm $orphans
-else
-    echo "✅ مفيش حزم يتييمة."
-fi
+  echo "🧹 حذف الحزم اليتيمة..."
+  orphans=$(pacman -Qtdq || true)
+  if [[ -n "$orphans" ]]; then
+      sudo pacman -Rns --noconfirm $orphans
+  else
+      echo "✅ مفيش حزم يتييمة."
+  fi
 
-if command -v yay &>/dev/null; then
-    echo "🗑️ تنظيف كاش AUR..."
-    yay -Sc --noconfirm
-fi
+  if command -v yay &>/dev/null; then
+      echo "🗑️ تنظيف كاش AUR..."
+      yay -Sc --noconfirm
+  fi
 
-echo "🗄️ تنظيف الـ logs..."
-sudo journalctl --vacuum-time=7d
+  echo "🗄️ تنظيف الـ logs..."
+  sudo journalctl --vacuum-time=7d
 
-if command -v flatpak &>/dev/null; then
-    echo "📦 تنظيف flatpak..."
-    flatpak uninstall --unused -y
-fi
+  if command -v flatpak &>/dev/null; then
+      echo "📦 تنظيف flatpak..."
+      flatpak uninstall --unused -y
+  fi
 
-if command -v snap &>/dev/null; then
-    echo "📦 تنظيف snap..."
-    sudo snap set system refresh.retain=2
-    sudo snap remove --purge $(snap list --all | awk '/disabled/{print $1, $2}')
-fi
+  if command -v snap &>/dev/null; then
+      echo "📦 تنظيف snap..."
+      sudo snap set system refresh.retain=2
+      sudo snap remove --purge $(snap list --all | awk '/disabled/{print $1, $2}')
+  fi
 
-echo "✨ تم التثبيت والتنظيف بنجاح! 🚀"
+  echo "✨ تم تنظيف النظام بنجاح!"
+}
+
+### تشغيل كل الخطوات ###
+install_all
+clean_system
+
+echo "🚀 تم التثبيت والتنظيف بنجاح!"
