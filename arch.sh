@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =========================
-# Arch Post Install Pro (Bash) - Full Mode (with pre-check & missing logs)
+# Arch Post Install Pro (Bash) - Full Mode (Auto)
 # =========================
 
 # ---- Logging & UI ----
@@ -11,7 +11,6 @@ LOG_FILE="$HOME/arch-post-install-$(date +'%Y%m%d-%H%M%S').log"
 MISSING_PKGS_FILE="$HOME/missing-packages.log"
 MISSING_SERVICES_FILE="$HOME/missing-services.log"
 
-# صافى ملفات المفقود كل مرّة تشغيل
 : > "$MISSING_PKGS_FILE"
 : > "$MISSING_SERVICES_FILE"
 
@@ -67,7 +66,7 @@ require_sudo() {
   fi
 }
 
-# ---- Package checkers (pacman + AUR) ----
+# ---- Package checkers ----
 filter_available_packages_pacman() {
   local pkgs=("$@")
   local found=()
@@ -108,7 +107,7 @@ install_pacman_checked() {
 install_aur_checked() {
   mapfile -t _avail < <(filter_available_packages_aur "$@")
   if (( ${#_avail[@]} )); then
-    yay -S --needed --noconfirm "${_avail[@]}"
+    yay -S --needed --noconfirm --removemake --answerdiff None --answeredit None "${_avail[@]}"
   else
     warn "مفيش ولا حزمة صالحة للتثبيت من AUR فى البلوك ده."
   fi
@@ -136,7 +135,7 @@ ok "تم تثبيت برامج Flatpak."
 step "تثبيت reflector وتحديث قائمة المرايا"
 install_pacman_checked reflector
 sudo reflector --country "Egypt","Germany","Netherlands" --protocol https \
-  --latest 20 --sort rate --score 10 --save /etc/pacman.d/mirrorlist || warn "reflector فشل فى كتابة mirrorlist (تأكد من الصلاحيات/الشبكة)"
+  --latest 20 --sort rate --score 10 --save /etc/pacman.d/mirrorlist || warn "reflector فشل فى كتابة mirrorlist"
 sudo pacman -Syy
 ok "تم تحديث /etc/pacman.d/mirrorlist"
 
@@ -153,7 +152,7 @@ install_pacman_checked \
   thermald fail2ban
 ok "تم تثبيت الحزم."
 
-# ---- 4) تحسين إعدادات pacman ----
+# ---- 4) تحسين pacman ----
 step "تحسين pacman"
 sudo sed -i 's/^#Color/Color/' /etc/pacman.conf
 if grep -q '^#ParallelDownloads' /etc/pacman.conf; then
@@ -181,7 +180,7 @@ ok "تم ضبط الخدمات."
 
 if ! id -nG "$USER" | grep -qw gamemode; then
   sudo usermod -aG gamemode "$USER"
-  ok "تم إضافة $USER لمجموعة gamemode (سجّل خروج/دخول)."
+  ok "تم إضافة $USER لمجموعة gamemode."
 else
   ok "مجموعة gamemode مضافة بالفعل."
 fi
@@ -213,7 +212,7 @@ net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 vm.vfs_cache_pressure = 75
 EOF
-sudo sysctl --system >/div/null 2>&1 || sudo sysctl --system >/dev/null
+sudo sysctl --system >/dev/null 2>&1 || sudo sysctl --system >/dev/null
 ok "تم تطبيق إعدادات sysctl"
 
 # ---- 8) تثبيت yay ----
@@ -289,8 +288,8 @@ END_TIME=$(date +'%F %T')
 echo
 ok "✨ خلصنا! بدأ: $START_TIME — انتهى: $END_TIME"
 echo "📄 ملف اللوج: $LOG_FILE"
-[[ -s "$MISSING_PKGS_FILE" ]] && warn "📦 حزم مفقودة (راجع وعدّل الاسكربت): $MISSING_PKGS_FILE"
-[[ -s "$MISSING_SERVICES_FILE" ]] && warn "🧩 خدمات مفقودة (راجع وعدّل الاسكربت): $MISSING_SERVICES_FILE"
+[[ -s "$MISSING_PKGS_FILE" ]] && warn "📦 حزم مفقودة: $MISSING_PKGS_FILE"
+[[ -s "$MISSING_SERVICES_FILE" ]] && warn "🧩 خدمات مفقودة: $MISSING_SERVICES_FILE"
 echo "💡 ملاحظات:"
 echo "- يفضل إعادة التشغيل علشان zram يشتغل."
 echo "- gamemode يتفعل بعد تسجيل الخروج/الدخول."
