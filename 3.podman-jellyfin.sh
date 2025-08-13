@@ -70,8 +70,6 @@ remove_old_container() {
 run_container() {
     echo "🚀 تشغيل Jellyfin..."
 
-    # على Arch عادة SELinux مش مفعّل، فمش هنستخدم :Z ولا relabel
-
     podman run -d \
         --name "$CONTAINER_NAME" \
         --label "io.containers.autoupdate=registry" \
@@ -90,7 +88,6 @@ generate_service() {
     SERVICE_FILE="container-$CONTAINER_NAME.service"
     podman generate systemd --name "$CONTAINER_NAME" --files --restart-policy=always
 
-    # تعديل المسارات اللى فيها مسافات (لو موجودة)
     sed -i -E 's/(source|target)=(([^" ]+)[^"]*[^" ]+)/\1="\2"/g' "$SERVICE_FILE"
 
     mkdir -p ~/.config/systemd/user
@@ -100,10 +97,8 @@ generate_service() {
 }
 
 enable_linger_and_service() {
-    # تفعيل linger علشان الخدمة تشتغل بعد الريستارت بدون login
     loginctl enable-linger "$USER"
 
-    # تهيئة مؤقتة للـ systemd session لو مش شغالة (مفيد فى KDE)
     if ! systemctl --user is-active --quiet basic.target; then
         echo "🛠️ تهيئة مؤقتة لـ systemd user session..."
         export XDG_RUNTIME_DIR="/run/user/$(id -u)"
@@ -130,11 +125,25 @@ enable_linger_and_service() {
 enable_auto_update() {
     if [[ "${ENABLE_AUTOUPDATE,,}" == "y" || "${ENABLE_AUTOUPDATE,,}" == "yes" || "${ENABLE_AUTOUPDATE,,}" == "true" ]]; then
         echo "✅ تفعيل auto-update..."
-        # على Arch podman-auto-update timer شغال على مستوى المستخدم user
         systemctl --user enable --now podman-auto-update.timer
         echo "✅ auto-update شغّالة!"
     else
         echo "ℹ️ auto-update مش مفعّل."
+    fi
+}
+
+interactive_tailscale() {
+    read -rp "⬇️ تحب تثبت Tailscale؟ [y/N]: " INSTALL_TAILSCALE
+    if [[ "$INSTALL_TAILSCALE" =~ ^[YyTt] ]]; then
+        if ! command -v tailscale &> /dev/null; then
+            echo "⬇️ تثبيت Tailscale..."
+            curl -fsSL https://tailscale.com/install.sh | sh
+            echo "✅ Tailscale اتثبت!"
+        else
+            echo "ℹ️ Tailscale موجود بالفعل."
+        fi
+    else
+        echo "ℹ️ تم تخطي تثبيت Tailscale."
     fi
 }
 
@@ -150,5 +159,6 @@ run_container
 generate_service
 enable_linger_and_service
 enable_auto_update
+interactive_tailscale
 
 echo "🎉 Jellyfin جاهز على http://localhost:8096"
