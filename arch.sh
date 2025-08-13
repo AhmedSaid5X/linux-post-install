@@ -179,8 +179,8 @@ install_pacman_checked \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
   mpv mkvtoolnix-gui firefox qbittorrent \
   power-profiles-daemon ufw gamemode lib32-gamemode \
-  xdg-user-dirs networkmanager ntp apparmor \
-  thermald fail2ban
+  xdg-user-dirs networkmanager ntp \
+  thermald 
 ok "تم تثبيت الحزم."
 
 # 4) تحسين pacman
@@ -205,8 +205,6 @@ SERVICES=(
   apparmor.service
   fstrim.timer
   thermald.service
-  systemd-oomd.service
-  fail2ban.service
   paccache.timer
 )
 for svc in "${SERVICES[@]}"; do
