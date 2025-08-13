@@ -127,7 +127,7 @@ install_pacman_checked \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
   mpv mkvtoolnix-gui firefox qbittorrent \
   power-profiles-daemon ufw gamemode lib32-gamemode \
-  xdg-user-dirs networkmanager ntp thermald
+  xdg-user-dirs networkmanager ntp thermald zip
 ok "تم"
 
 # ---- الخدمات الأساسية ----
