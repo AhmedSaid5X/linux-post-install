@@ -1,31 +1,59 @@
 #!/bin/bash
 set -e
 
-echo "🚀 بدء التثبيت..."
+echo "🚀 بدء التثبيت الكامل لما بعد تثبيت Arch Linux..."
 
-# إضافة Flathub (قبل التثبيت)
+# سؤال للمستخدم يختار نوع التثبيت
+echo "اختر نوع التثبيت:"
+echo "1) تثبيت كامل (Performance + Security + Services)"
+echo "2) تثبيت خفيف (Essential packages only)"
+read -rp "اختيارك (1/2): " choice
+
+### 1. تحديث النظام وإضافة Flathub ###
 sudo pacman -Syu --needed --noconfirm flatpak
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
-# تثبيت الحزم الأساسية من pacman
+### 2. تثبيت الحزم الأساسية ###
 sudo pacman -S --needed --noconfirm \
   git base-devel pacman-contrib \
   noto-fonts noto-fonts-emoji noto-fonts-extra \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
-  mpv mkvtoolnix-gui firefox qbittorrent
+  mpv mkvtoolnix-gui firefox qbittorrent \
+  power-profiles-daemon ufw gamemode lib32-gamemode \
+  xdg-user-dirs networkmanager ntp apparmor
 
-# تثبيت power-profiles-daemon و UFW و Gamemode
-sudo pacman -S --needed --noconfirm \
-  power-profiles-daemon ufw gamemode lib32-gamemode
+# لو اختار تثبيت كامل نضيف باقي الخدمات
+if [[ "$choice" == "1" ]]; then
+  sudo pacman -S --needed --noconfirm \
+    systemd-oomd thermald preload fail2ban
+fi
 
-# تفعيل UFW
+### 3. تفعيل الخدمات ###
+# خدمات أساسية
 sudo ufw enable
 sudo systemctl enable ufw
-
-# إضافة المستخدم لمجموعة gamemode
+sudo systemctl enable --now power-profiles-daemon
+sudo systemctl enable --now NetworkManager
+sudo systemctl enable --now apparmor
+sudo systemctl enable --now fstrim.timer
+sudo timedatectl set-ntp true
 sudo usermod -aG gamemode "$USER"
+xdg-user-dirs-update
 
-# تثبيت yay لو مش موجود
+# لو تثبيت كامل نفعّل الخدمات الإضافية
+if [[ "$choice" == "1" ]]; then
+  sudo systemctl enable --now thermald
+  sudo systemctl enable --now systemd-oomd
+  sudo systemctl enable --now fail2ban
+  sudo systemctl enable --now paccache.timer
+fi
+
+### 4. تحسين إعدادات pacman ###
+sudo sed -i 's/^#Color/Color/' /etc/pacman.conf
+sudo sed -i 's/^#ParallelDownloads = 5/ParallelDownloads = 5/' /etc/pacman.conf
+grep -q '^ILoveCandy' /etc/pacman.conf || echo "ILoveCandy" | sudo tee -a /etc/pacman.conf
+
+### 5. تثبيت yay لو مش موجود ###
 if ! command -v yay &>/dev/null; then
   tmpdir=$(mktemp -d)
   git clone https://aur.archlinux.org/yay-bin.git "$tmpdir"
@@ -35,25 +63,15 @@ if ! command -v yay &>/dev/null; then
   rm -rf "$tmpdir"
 fi
 
-# تثبيت حزم من AUR
+### 6. تثبيت حزم من AUR ###
 yay -S --needed --noconfirm \
   ttf-amiri ttf-sil-harmattan ffmpegthumbs-git autosubsync-bin
 
-echo "🧹 بدء التنظيف..."
-
-# تنظيف كاش pacman
+### 7. التنظيف ###
 sudo paccache -r
-
-# حذف الحزم اليتيمة
 sudo pacman -Rns --noconfirm $(pacman -Qtdq || true)
-
-# تنظيف كاش AUR
 yay -Sc --noconfirm
-
-# تنظيف logs
 sudo journalctl --vacuum-time=7d
-
-# تنظيف flatpak
 flatpak uninstall --unused -y
 
-echo "✨ تم التثبيت والتنظيف بنجاح! 🚀"
+echo "✨ تم التثبيت بنجاح! 🚀"
