@@ -14,6 +14,17 @@ sudo pacman -S --needed --noconfirm \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
   mpv mkvtoolnix-gui firefox qbittorrent
 
+# تثبيت power-profiles-daemon و UFW و Gamemode
+sudo pacman -S --needed --noconfirm \
+  power-profiles-daemon ufw gamemode lib32-gamemode
+
+# تفعيل UFW
+sudo ufw enable
+sudo systemctl enable ufw
+
+# إضافة المستخدم لمجموعة gamemode
+sudo usermod -aG gamemode "$USER"
+
 # تثبيت yay لو مش موجود
 if ! command -v yay &>/dev/null; then
   tmpdir=$(mktemp -d)
