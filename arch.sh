@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # =========================
-# Arch Post Install - Clean & Auto
+# Arch Post Install - Clean & Auto (Non-Interactive, Fully AUR-safe, Stable Mirrors)
 # =========================
 
 # ---- Config ----
 AUR_TIMEOUT=${AUR_TIMEOUT:-180}
-YAY_MAKE_TIMEOUT=${YAY_MAKE_TIMEOUT:-300}
+PARU_MAKE_TIMEOUT=${PARU_MAKE_TIMEOUT:-300}
 FLATPAK_TIMEOUT=${FLATPAK_TIMEOUT:-180}
 REFLECTOR_TIMEOUT=${REFLECTOR_TIMEOUT:-60}
 
@@ -55,12 +55,7 @@ require_internet() {
   ping -c1 -W3 archlinux.org &>/dev/null && ok "الإنترنت شغال." || err "مفيش اتصال بالإنترنت."
 }
 
-require_sudo() {
-  step "فحص صلاحيات sudo"
-  sudo -n true &>/dev/null && ok "صلاحيات sudo جاهزة." || warn "السكربت هيطلب باسورد sudo عند الحاجة."
-}
-
-# ---- Pacman & AUR ----
+# ---- Pacman ----
 install_pacman_checked() {
   local pkgs=("$@")
   local avail=()
@@ -70,29 +65,29 @@ install_pacman_checked() {
   (( ${#avail[@]} )) && sudo pacman -S --noconfirm --needed -q "${avail[@]}"
 }
 
-ensure_yay() {
-  command -v yay &>/dev/null && { ok "yay موجود"; return; }
-  step "تثبيت yay"
+# ---- Paru (AUR helper) ----
+ensure_paru() {
+  command -v paru &>/dev/null && { ok "paru موجود"; return; }
+  step "تثبيت paru"
   sudo pacman -S --needed --noconfirm base-devel git || true
   tmpdir=$(mktemp -d)
-  git clone https://aur.archlinux.org/yay-bin.git "$tmpdir/yay-bin"
-  pushd "$tmpdir/yay-bin" >/dev/null
-  makepkg -si --noconfirm || warn "فشل makepkg لتثبيت yay"
+  git clone https://aur.archlinux.org/paru-bin.git "$tmpdir/paru-bin"
+  pushd "$tmpdir/paru-bin" >/dev/null
+  makepkg -si --noconfirm || warn "فشل makepkg لتثبيت paru"
   popd >/dev/null
   rm -rf "$tmpdir"
 }
 
 install_aur_failsafe() {
-  command -v yay &>/dev/null || { warn "yay مش موجود؛ تخطى كل حزم AUR"; return; }
+  command -v paru &>/dev/null || { warn "paru مش موجود؛ تخطى كل حزم AUR"; return; }
   for pkg in "$@"; do
     step "تثبيت AUR: $pkg"
-    yay -S --needed --noconfirm "$pkg" || { warn "فشل تثبيت $pkg"; echo "$pkg" >> "$MISSING_PKGS_FILE"; }
+    paru -S --noconfirm --needed "$pkg" || { warn "فشل تثبيت $pkg"; echo "$pkg" >> "$MISSING_PKGS_FILE"; }
   done
 }
 
 # ========================= تنفيذ =========================
 require_internet
-require_sudo
 
 # ---- pacman.conf ----
 step "تصحيح إعدادات pacman.conf"
@@ -113,8 +108,16 @@ flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim com.github.tchx
 
 # ---- تحديث المرايا ----
 step "تحديث mirrorlist"
-with_timeout "$REFLECTOR_TIMEOUT" sudo reflector --country "Egypt,Germany,Netherlands" --protocol https --latest 20 --sort rate --score 10 --save /etc/pacman.d/mirrorlist || warn "فشل reflector"
+with_timeout "$REFLECTOR_TIMEOUT" sudo reflector \
+  --country "Egypt,Germany,Netherlands" \
+  --protocol https \
+  --latest 20 \
+  --sort rate \
+  --score 10 \
+  --fastest 20 \
+  --save /etc/pacman.d/mirrorlist || warn "⚠ بعض المرايا فشلت، تم استخدام المرايا المتاحة."
 sudo pacman -Syy || true
+ok "تم تحديث mirrorlist"
 
 # ---- الحزم الأساسية ----
 step "تثبيت الحزم الأساسية"
@@ -124,7 +127,7 @@ install_pacman_checked \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
   mpv mkvtoolnix-gui firefox qbittorrent \
   power-profiles-daemon ufw gamemode lib32-gamemode \
-  xdg-user-dirs networkmanager ntp thermald unrar fastfetch
+  xdg-user-dirs networkmanager ntp thermald
 ok "تم"
 
 # ---- الخدمات الأساسية ----
@@ -153,10 +156,12 @@ sudo sysctl --system >/dev/null 2>&1 || true
 ok "تم"
 
 # ---- AUR ----
-ensure_yay
+ensure_paru
 step "تثبيت حزم من AUR"
-install_aur_failsafe ttf-amiri ttf-sil-harmattan ffmpegthumbs-git autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
-subtitlecomposer
+install_aur_failsafe \
+  ttf-amiri ttf-sil-harmattan ffmpegthumbs-git \
+  autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
+  subtitlecomposer
 
 # ---- checkupdates timer ----
 step "إعداد تحديثات يومية"
@@ -186,7 +191,7 @@ enable_service arch-checkupdates.timer
 step "تنظيف النظام"
 sudo paccache -r || true
 sudo pacman -Rns --noconfirm $(pacman -Qtdq || true) || true
-yay -Sc --noconfirm || true
+paru -Sc --noconfirm || true
 sudo journalctl --vacuum-time=7d || true
 flatpak uninstall --unused -y || true
 
