@@ -124,7 +124,7 @@ install_pacman_checked \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
   mpv mkvtoolnix-gui firefox qbittorrent \
   power-profiles-daemon ufw gamemode lib32-gamemode \
-  xdg-user-dirs networkmanager ntp thermald
+  xdg-user-dirs networkmanager ntp thermald unrar
 ok "تم"
 
 # ---- الخدمات الأساسية ----
@@ -155,7 +155,8 @@ ok "تم"
 # ---- AUR ----
 ensure_yay
 step "تثبيت حزم من AUR"
-install_aur_failsafe ttf-amiri ttf-sil-harmattan ffmpegthumbs-git autosubsync-bin
+install_aur_failsafe ttf-amiri ttf-sil-harmattan ffmpegthumbs-git autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
+subtitlecomposer
 
 # ---- checkupdates timer ----
 step "إعداد تحديثات يومية"
