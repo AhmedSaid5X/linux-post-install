@@ -94,7 +94,7 @@ sudo pacman -S --noconfirm --needed -q \
   mpv mkvtoolnix-gui firefox qbittorrent \
   power-profiles-daemon ufw gamemode lib32-gamemode \
   xdg-user-dirs networkmanager ntp apparmor \
-  systemd-oomd thermald preload fail2ban
+  thermald fail2ban
 ok "تم تثبيت الحزم."
 
 # ---- 4) تحسين إعدادات pacman ----
