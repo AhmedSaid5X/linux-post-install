@@ -2,12 +2,12 @@
 set -euo pipefail
 
 # =========================
-# Arch Post Install Pro (Bash) - Full Auto with AUR Fail-Safe
+# Arch Post Install Pro (Bash) - Full Auto with AUR Fail-Safe (Fixed)
 # =========================
 
 # ---- Config ----
-AUR_TIMEOUT=${AUR_TIMEOUT:-180}    # ثواني للمهلة لكل باكدج AUR
-YAY_MAKE_TIMEOUT=${YAY_MAKE_TIMEOUT:-300} # مهلة تثبيت yay من AUR
+AUR_TIMEOUT=${AUR_TIMEOUT:-180}
+YAY_MAKE_TIMEOUT=${YAY_MAKE_TIMEOUT:-300}
 FLATPAK_TIMEOUT=${FLATPAK_TIMEOUT:-180}
 REFLECTOR_TIMEOUT=${REFLECTOR_TIMEOUT:-60}
 
@@ -31,7 +31,7 @@ trap 'err "حصل خطأ! راجع اللوج: $LOG_FILE"' ERR
 with_timeout() {
   local seconds="$1"; shift
   if ! timeout "$seconds" "$@"; then
-    return 124 # كود timeout
+    return 124
   fi
 }
 
@@ -96,7 +96,7 @@ install_pacman_checked() {
   fi
 }
 
-# ---- AUR helpers (Fail-Safe) ----
+# ---- AUR helpers ----
 ensure_yay() {
   if command -v yay &>/dev/null; then
     ok "yay موجود بالفعل"
@@ -121,7 +121,6 @@ ensure_yay() {
 }
 
 install_aur_failsafe() {
-  # يثبت كل حزمة لوحدها بمهلة محددة. لو فشلت يتخطاها ويكمل.
   local pkgs=("$@")
   if ! command -v yay &>/dev/null; then
     warn "yay مش متاح؛ تخطى كل حزم AUR: ${pkgs[*]}"
@@ -131,7 +130,7 @@ install_aur_failsafe() {
   for pkg in "${pkgs[@]}"; do
     step "تثبيت من AUR: $pkg"
     if with_timeout "$AUR_TIMEOUT" yay -S --needed --noconfirm --removemake \
-        --answerdiff None --answeredit None --noredownload --nocleanmenu "$pkg"; then
+        --answerdiff None --answeredit None --noredownload "$pkg"; then
       ok "تم تثبيت $pkg (AUR)"
     else
       warn "فشل تثبيت $pkg من AUR (مهلة/خطأ). تم تخطيه."
@@ -148,14 +147,13 @@ require_sudo
 step "تحديث النظام وإضافة Flathub"
 install_pacman_checked flatpak
 sudo pacman -Syu --noconfirm || true
-# إضافة Flathub مع مهلة
 if ! with_timeout "$FLATPAK_TIMEOUT" flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo; then
   warn "تخطى إضافة Flathub بسبب المهلة."
 fi
 with_timeout "$FLATPAK_TIMEOUT" flatpak update --appstream -y || true
 ok "تم."
 
-# 1.1) تثبيت برامج Flatpak (Fail-safe)
+# 1.1) تثبيت برامج Flatpak
 step "تثبيت برامج Flatpak"
 with_timeout "$FLATPAK_TIMEOUT" flatpak install -y flathub \
   com.github.iwalton3.jellyfin-mpv-shim \
@@ -193,23 +191,29 @@ if grep -q '^#ParallelDownloads' /etc/pacman.conf; then
 elif ! grep -q '^ParallelDownloads' /etc/pacman.conf; then
   echo "ParallelDownloads = 5" | sudo tee -a /etc/pacman.conf >/dev/null
 fi
-grep -q '^ILoveCandy' /etc/pacman.conf || echo "ILoveCandy" | sudo tee -a /etc/pacman.conf >/dev/null
+if ! grep -q '^ILoveCandy' /etc/pacman.conf; then
+  sudo sed -i '/^Color/a ILoveCandy' /etc/pacman.conf
+fi
 ok "تم."
 
-# 5) تفعيل الخدمات الأساسية
+# 5) تفعيل الخدمات
 step "تفعيل الخدمات الأساسية"
+SERVICES=(
+  ufw.service
+  power-profiles-daemon.service
+  NetworkManager.service
+  apparmor.service
+  fstrim.timer
+  thermald.service
+  systemd-oomd.service
+  fail2ban.service
+  paccache.timer
+)
+for svc in "${SERVICES[@]}"; do
+  enable_now_if_exists "$svc"
+done
 sudo ufw enable || true
-enable_now_if_exists ufw.service || enable_now_if_exists ufw
-enable_now_if_exists power-profiles-daemon.service
-enable_now_if_exists NetworkManager.service
-enable_now_if_exists apparmor.service
-enable_now_if_exists fstrim.timer
 sudo timedatectl set-ntp true || true
-enable_now_if_exists thermald.service
-enable_now_if_exists systemd-oomd.service
-enable_now_if_exists fail2ban.service
-enable_now_if_exists paccache.timer
-ok "تم ضبط الخدمات."
 
 if ! id -nG "$USER" | grep -qw gamemode; then
   sudo usermod -aG gamemode "$USER" || true
@@ -217,10 +221,9 @@ if ! id -nG "$USER" | grep -qw gamemode; then
 else
   ok "مجموعة gamemode مضافة بالفعل."
 fi
-
 xdg-user-dirs-update || true
 
-# 6) إعداد zram
+# 6) zram
 step "تهيئة zram"
 install_pacman_checked zram-generator
 ZCONF="/etc/systemd/zram-generator.conf"
@@ -236,7 +239,7 @@ else
   ok "ملف zram-generator.conf موجود بالفعل"
 fi
 
-# 7) تحسينات sysctl
+# 7) sysctl
 step "ضبط sysctl"
 SYSCTL="/etc/sysctl.d/99-tuned.conf"
 sudo tee "$SYSCTL" >/dev/null <<'EOF'
@@ -248,16 +251,16 @@ EOF
 sudo sysctl --system >/dev/null 2>&1 || sudo sysctl --system >/dev/null
 ok "تم تطبيق إعدادات sysctl"
 
-# 8) تثبيت yay
+# 8) yay
 ensure_yay
 
-# 9) تثبيت حزم AUR (Fail-Safe)
+# 9) AUR
 step "تثبيت حزم من AUR"
 install_aur_failsafe \
   ttf-amiri ttf-sil-harmattan ffmpegthumbs-git autosubsync-bin
-ok "انتهى قسم AUR (قد تكون بعض الحزم اتخطّت لو السيرفر كان واقع)."
+ok "انتهى قسم AUR."
 
-# 10) مؤقّت checkupdates
+# 10) مؤقّت التحديثات
 step "إعداد مؤقّت لفحص التحديثات"
 sudo tee /etc/systemd/system/arch-checkupdates.service >/dev/null <<'EOF'
 [Unit]
@@ -287,7 +290,7 @@ sudo systemctl daemon-reload
 enable_now_if_exists arch-checkupdates.timer
 ok "تم."
 
-# 11) تنظيفات
+# 11) تنظيف
 step "تنظيف النظام"
 sudo paccache -r || true
 sudo pacman -Rns --noconfirm $(pacman -Qtdq || true) || true
@@ -308,8 +311,8 @@ END_TIME=$(date +'%F %T')
 echo
 ok "✨ خلصنا! بدأ: $START_TIME — انتهى: $END_TIME"
 echo "📄 ملف اللوج: $LOG_FILE"
-[[ -s "$MISSING_PKGS_FILE" ]] && warn "📦 حزم مفقودة (راجع وعدّل الاسكربت): $MISSING_PKGS_FILE"
-[[ -s "$MISSING_SERVICES_FILE" ]] && warn "🧩 خدمات مفقودة (راجع وعدّل الاسكربت): $MISSING_SERVICES_FILE"
+[[ -s "$MISSING_PKGS_FILE" ]] && warn "📦 حزم مفقودة: $MISSING_PKGS_FILE"
+[[ -s "$MISSING_SERVICES_FILE" ]] && warn "🧩 خدمات مفقودة: $MISSING_SERVICES_FILE"
 echo "💡 ملاحظات:"
 echo "- يفضل إعادة التشغيل علشان zram يشتغل."
 echo "- gamemode يتفعل بعد تسجيل الخروج/الدخول."
