@@ -2,12 +2,19 @@
 set -euo pipefail
 
 # =========================
-# Arch Post Install Pro (Bash) - Full Mode
+# Arch Post Install Pro (Bash) - Full Mode (with pre-check & missing logs)
 # =========================
 
 # ---- Logging & UI ----
 START_TIME=$(date +'%F %T')
 LOG_FILE="$HOME/arch-post-install-$(date +'%Y%m%d-%H%M%S').log"
+MISSING_PKGS_FILE="$HOME/missing-packages.log"
+MISSING_SERVICES_FILE="$HOME/missing-services.log"
+
+# صافى ملفات المفقود كل مرّة تشغيل
+: > "$MISSING_PKGS_FILE"
+: > "$MISSING_SERVICES_FILE"
+
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 step() { echo -e "\n\033[1;36m[$(date +'%H:%M:%S')] ➤ $*\033[0m"; }
@@ -29,6 +36,7 @@ enable_now_if_exists() {
     fi
   else
     warn "الخدمة مش موجودة: $unit"
+    echo "$unit" >> "$MISSING_SERVICES_FILE"
   fi
 }
 
@@ -59,12 +67,60 @@ require_sudo() {
   fi
 }
 
+# ---- Package checkers (pacman + AUR) ----
+filter_available_packages_pacman() {
+  local pkgs=("$@")
+  local found=()
+  for pkg in "${pkgs[@]}"; do
+    if pacman -Si "$pkg" &>/dev/null; then
+      found+=("$pkg")
+    else
+      warn "الحزمة مش موجودة في مستودعات pacman: $pkg"
+      echo "$pkg" >> "$MISSING_PKGS_FILE"
+    fi
+  done
+  printf '%s\n' "${found[@]}"
+}
+
+filter_available_packages_aur() {
+  local pkgs=("$@")
+  local found=()
+  for pkg in "${pkgs[@]}"; do
+    if yay -Si "$pkg" &>/dev/null; then
+      found+=("$pkg")
+    else
+      warn "الحزمة مش موجودة في AUR: $pkg"
+      echo "$pkg" >> "$MISSING_PKGS_FILE"
+    fi
+  done
+  printf '%s\n' "${found[@]}"
+}
+
+install_pacman_checked() {
+  mapfile -t _avail < <(filter_available_packages_pacman "$@")
+  if (( ${#_avail[@]} )); then
+    sudo pacman -S --noconfirm --needed -q "${_avail[@]}"
+  else
+    warn "مفيش ولا حزمة صالحة للتثبيت من pacman فى البلوك ده."
+  fi
+}
+
+install_aur_checked() {
+  mapfile -t _avail < <(filter_available_packages_aur "$@")
+  if (( ${#_avail[@]} )); then
+    yay -S --needed --noconfirm "${_avail[@]}"
+  else
+    warn "مفيش ولا حزمة صالحة للتثبيت من AUR فى البلوك ده."
+  fi
+}
+
 # ---- 1) تحديث النظام + Flathub ----
 require_internet
 require_sudo
 
 step "تحديث النظام وإضافة Flathub"
-sudo pacman -Syu --noconfirm --needed flatpak
+install_pacman_checked flatpak
+sudo pacman -Syu --noconfirm
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 flatpak update --appstream -y
 ok "تم."
@@ -73,20 +129,20 @@ ok "تم."
 step "تثبيت برامج Flatpak"
 flatpak install -y flathub \
   com.github.iwalton3.jellyfin-mpv-shim \
-  com.github.tchx84.Flatseal
+  com.github.tchx84.Flatseal || true
 ok "تم تثبيت برامج Flatpak."
 
 # ---- 2) اختيار أسرع مرايا ----
 step "تثبيت reflector وتحديث قائمة المرايا"
-sudo pacman -S --noconfirm --needed reflector
+install_pacman_checked reflector
 sudo reflector --country "Egypt","Germany","Netherlands" --protocol https \
-  --latest 20 --sort rate --score 10 --save /etc/pacman.d/mirrorlist
+  --latest 20 --sort rate --score 10 --save /etc/pacman.d/mirrorlist || warn "reflector فشل فى كتابة mirrorlist (تأكد من الصلاحيات/الشبكة)"
 sudo pacman -Syy
 ok "تم تحديث /etc/pacman.d/mirrorlist"
 
 # ---- 3) الحزم الأساسية ----
 step "تثبيت الحزم الأساسية (pacman)"
-sudo pacman -S --noconfirm --needed -q \
+install_pacman_checked \
   archlinux-keyring \
   git base-devel pacman-contrib reflector \
   noto-fonts noto-fonts-emoji noto-fonts-extra \
@@ -134,7 +190,7 @@ xdg-user-dirs-update || true
 
 # ---- 6) إعداد zram ----
 step "تهيئة zram"
-sudo pacman -S --noconfirm --needed -q zram-generator
+install_pacman_checked zram-generator
 ZCONF="/etc/systemd/zram-generator.conf"
 if [[ ! -f "$ZCONF" ]]; then
   sudo tee "$ZCONF" >/dev/null <<'EOF'
@@ -157,7 +213,7 @@ net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 vm.vfs_cache_pressure = 75
 EOF
-sudo sysctl --system >/dev/null
+sudo sysctl --system >/div/null 2>&1 || sudo sysctl --system >/dev/null
 ok "تم تطبيق إعدادات sysctl"
 
 # ---- 8) تثبيت yay ----
@@ -178,7 +234,7 @@ fi
 
 # ---- 9) تثبيت حزم AUR ----
 step "تثبيت حزم من AUR"
-yay -S --needed --noconfirm \
+install_aur_checked \
   ttf-amiri ttf-sil-harmattan ffmpegthumbs-git autosubsync-bin
 ok "تم."
 
@@ -233,6 +289,8 @@ END_TIME=$(date +'%F %T')
 echo
 ok "✨ خلصنا! بدأ: $START_TIME — انتهى: $END_TIME"
 echo "📄 ملف اللوج: $LOG_FILE"
+[[ -s "$MISSING_PKGS_FILE" ]] && warn "📦 حزم مفقودة (راجع وعدّل الاسكربت): $MISSING_PKGS_FILE"
+[[ -s "$MISSING_SERVICES_FILE" ]] && warn "🧩 خدمات مفقودة (راجع وعدّل الاسكربت): $MISSING_SERVICES_FILE"
 echo "💡 ملاحظات:"
 echo "- يفضل إعادة التشغيل علشان zram يشتغل."
 echo "- gamemode يتفعل بعد تسجيل الخروج/الدخول."
