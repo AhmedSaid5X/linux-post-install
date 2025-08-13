@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =========================
-# Arch Post Install Pro (Bash) - Full Auto with AUR Fail-Safe (Fixed)
+# Arch Post Install Pro (Bash) - Full Auto with AUR Fail-Safe (Fixed & Improved)
 # =========================
 
 # ---- Config ----
@@ -47,6 +47,23 @@ enable_now_if_exists() {
   else
     warn "الخدمة مش موجودة: $unit"
     echo "$unit" >> "$MISSING_SERVICES_FILE"
+  fi
+}
+
+# خدمة بفحص مرن
+enable_now_if_exists_fuzzy() {
+  local unit="$1"
+  if systemctl list-unit-files | grep -iq "^$unit"; then
+    enable_now_if_exists "$unit"
+  else
+    local found
+    found=$(systemctl list-unit-files | grep -i "$unit" | awk '{print $1}' | head -n 1)
+    if [[ -n "$found" ]]; then
+      enable_now_if_exists "$found"
+    else
+      warn "الخدمة مش موجودة: $unit"
+      echo "$unit" >> "$MISSING_SERVICES_FILE"
+    fi
   fi
 }
 
@@ -143,6 +160,14 @@ install_aur_failsafe() {
 require_internet
 require_sudo
 
+# 0) إصلاح pacman.conf (ILoveCandy في المكان الصح)
+step "تصحيح إعدادات pacman.conf"
+sudo sed -i '/ILoveCandy/d' /etc/pacman.conf
+if ! grep -q '^ILoveCandy' /etc/pacman.conf; then
+  sudo sed -i '/^Color/a ILoveCandy' /etc/pacman.conf
+fi
+ok "تم تصحيح pacman.conf"
+
 # 1) تحديث النظام + Flathub
 step "تحديث النظام وإضافة Flathub"
 install_pacman_checked flatpak
@@ -183,7 +208,7 @@ install_pacman_checked \
   thermald 
 ok "تم تثبيت الحزم."
 
-# 4) تحسين pacman
+# 4) تحسين pacman (اللون + التحميل المتوازي + ILoveCandy اتصلحت فوق)
 step "تحسين pacman"
 sudo sed -i 's/^#Color/Color/' /etc/pacman.conf || true
 if grep -q '^#ParallelDownloads' /etc/pacman.conf; then
@@ -191,12 +216,9 @@ if grep -q '^#ParallelDownloads' /etc/pacman.conf; then
 elif ! grep -q '^ParallelDownloads' /etc/pacman.conf; then
   echo "ParallelDownloads = 5" | sudo tee -a /etc/pacman.conf >/dev/null
 fi
-if ! grep -q '^ILoveCandy' /etc/pacman.conf; then
-  sudo sed -i '/^Color/a ILoveCandy' /etc/pacman.conf
-fi
 ok "تم."
 
-# 5) تفعيل الخدمات
+# 5) تفعيل الخدمات الأساسية (بالبحث المرن)
 step "تفعيل الخدمات الأساسية"
 SERVICES=(
   ufw.service
@@ -208,7 +230,7 @@ SERVICES=(
   paccache.timer
 )
 for svc in "${SERVICES[@]}"; do
-  enable_now_if_exists "$svc"
+  enable_now_if_exists_fuzzy "$svc"
 done
 sudo ufw enable || true
 sudo timedatectl set-ntp true || true
@@ -285,7 +307,7 @@ WantedBy=timers.target
 EOF
 
 sudo systemctl daemon-reload
-enable_now_if_exists arch-checkupdates.timer
+enable_now_if_exists_fuzzy arch-checkupdates.timer
 ok "تم."
 
 # 11) تنظيف
