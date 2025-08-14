@@ -157,7 +157,7 @@ install_pacman_checked \
   archlinux-keyring git base-devel pacman-contrib \
   noto-fonts noto-fonts-emoji noto-fonts-extra \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
-  mpv mkvtoolnix-gui firefox qbittorrent \
+  mpv mkvtoolnix-gui fastfetch firefox qbittorrent \
   power-profiles-daemon ufw gamemode lib32-gamemode \
   xdg-user-dirs networkmanager ntp thermald zip gwenview
 ok "تم"
