@@ -161,7 +161,7 @@ step "تثبيت حزم من AUR"
 install_aur_failsafe \
   ttf-amiri ttf-sil-harmattan ffmpegthumbs-git \
   autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
-  subtitlecomposer arch-gaming-meta
+  subtitlecomposer arch-gaming-meta visual-studio-code-bin
 
 # ---- checkupdates timer ----
 step "إعداد تحديثات يومية"
