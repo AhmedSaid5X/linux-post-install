@@ -155,7 +155,7 @@ ok "تم تحديث mirrorlist"
 step "تثبيت الحزم الأساسية"
 install_pacman_checked \
   archlinux-keyring git base-devel pacman-contrib \
-  noto-fonts noto-fonts-emoji noto-fonts-extra \
+  noto-fonts noto-fonts-emoji noto-fonts-extra timeshift \
   ttf-dejavu ttf-liberation ttf-scheherazade-new \
   mpv mkvtoolnix-gui fastfetch firefox qbittorrent \
   power-profiles-daemon ufw gamemode lib32-gamemode \
