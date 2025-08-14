@@ -23,6 +23,26 @@ if ! command -v podman &> /dev/null; then
     fi
 fi
 
+# 🚨 تثبيت Podman Desktop
+install_podman_desktop() {
+    if ! command -v podman-desktop &> /dev/null; then
+        echo "⬇️ Podman Desktop مش موجود، هيتم تثبيته..."
+        if [[ -f /etc/fedora-release ]]; then
+            sudo dnf install -y podman-desktop
+        elif [[ -f /etc/arch-release ]]; then
+            sudo pacman -S --noconfirm podman-desktop
+        elif [[ -f /etc/debian_version ]]; then
+            sudo apt update && sudo apt install -y podman-desktop
+        else
+            echo "⚠️ ما نقدرش نعرف مدير الحزم على النظام ده، ثبت Podman Desktop يدويًا."
+            return 1
+        fi
+        echo "✅ Podman Desktop اتثبت!"
+    else
+        echo "ℹ️ Podman Desktop موجود بالفعل."
+    fi
+}
+
 DESKTOP_ENV=$(echo "${XDG_CURRENT_DESKTOP,,}")
 ENV_FILE="${1:-$HOME/.config/jellyfin-podman.env}"
 
@@ -91,7 +111,6 @@ remove_old_container() {
 
 run_container() {
     echo "🚀 تشغيل Jellyfin..."
-
     podman run -d \
         --name "$CONTAINER_NAME" \
         --label "io.containers.autoupdate=registry" \
@@ -109,18 +128,14 @@ generate_service() {
     echo "⚙️ توليد systemd service..."
     SERVICE_FILE="container-$CONTAINER_NAME.service"
     podman generate systemd --name "$CONTAINER_NAME" --files --restart-policy=always
-
     sed -i -E 's/(source|target)=(([^" ]+)[^"]*[^" ]+)/\1="\2"/g' "$SERVICE_FILE"
-
     mkdir -p ~/.config/systemd/user
     mv "$SERVICE_FILE" ~/.config/systemd/user/
-
     systemctl --user daemon-reload
 }
 
 enable_linger_and_service() {
     loginctl enable-linger "$USER"
-
     if ! systemctl --user is-active --quiet basic.target; then
         echo "🛠️ تهيئة مؤقتة لـ systemd user session..."
         export XDG_RUNTIME_DIR="/run/user/$(id -u)"
@@ -164,6 +179,10 @@ interactive_tailscale() {
         else
             echo "ℹ️ Tailscale موجود بالفعل."
         fi
+
+        echo "🔑 تشغيل tailscale up..."
+        sudo tailscale up
+        echo "✅ Tailscale شغّالة!"
     else
         echo "ℹ️ تم تخطي تثبيت Tailscale."
     fi
@@ -181,6 +200,9 @@ run_container
 generate_service
 enable_linger_and_service
 enable_auto_update
+
+# ✅ تثبيت Podman Desktop قبل Tailscale
+install_podman_desktop
 interactive_tailscale
 
 echo "🎉 Jellyfin جاهز على http://localhost:8096"
