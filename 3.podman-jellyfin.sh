@@ -1,6 +1,28 @@
 #!/bin/bash
 set -e
 
+# 🚨 فحص Podman
+if ! command -v podman &> /dev/null; then
+    echo "❌ Podman مش موجود على النظام."
+    read -rp "⬇️ تحب تثبته دلوقتي؟ [y/N]: " INSTALL_PODMAN
+    if [[ "$INSTALL_PODMAN" =~ ^[YyTt] ]]; then
+        if [[ -f /etc/fedora-release ]]; then
+            sudo dnf install -y podman
+        elif [[ -f /etc/arch-release ]]; then
+            sudo pacman -S --noconfirm podman
+        elif [[ -f /etc/debian_version ]]; then
+            sudo apt update && sudo apt install -y podman
+        else
+            echo "⚠️ ما نقدرش نعرف مدير الحزم على النظام ده، ثبت Podman يدويًا."
+            exit 1
+        fi
+        echo "✅ Podman اتثبت!"
+    else
+        echo "🚫 لازم Podman عشان السكربت يشتغل. الخروج..."
+        exit 1
+    fi
+fi
+
 DESKTOP_ENV=$(echo "${XDG_CURRENT_DESKTOP,,}")
 ENV_FILE="${1:-$HOME/.config/jellyfin-podman.env}"
 
