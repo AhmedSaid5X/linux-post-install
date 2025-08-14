@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =========================
-# Arch Post Install - Clean & Auto (Non-Interactive, Fully AUR-safe, Stable Mirrors)
+# Arch Post Install - Clean & Auto (Non-Interactive, AUR-safe, arch-gaming-meta auto choice)
 # =========================
 
 # ---- Config ----
@@ -55,8 +55,16 @@ require_internet() {
   ping -c1 -W3 archlinux.org &>/dev/null && ok "الإنترنت شغال." || err "مفيش اتصال بالإنترنت."
 }
 
+remove_pacman_lock() {
+  if [[ -f /var/lib/pacman/db.lck ]]; then
+    warn "تم العثور على قفل pacman موجود، جاري إزالته..."
+    sudo rm -f /var/lib/pacman/db.lck && ok "تم إزالة قفل pacman."
+  fi
+}
+
 # ---- Pacman ----
 install_pacman_checked() {
+  remove_pacman_lock
   local pkgs=("$@")
   local avail=()
   for pkg in "${pkgs[@]}"; do
@@ -69,7 +77,7 @@ install_pacman_checked() {
 ensure_paru() {
   command -v paru &>/dev/null && { ok "paru موجود"; return; }
   step "تثبيت paru"
-  sudo pacman -S --needed --noconfirm base-devel git || true
+  install_pacman_checked base-devel git
   tmpdir=$(mktemp -d)
   git clone https://aur.archlinux.org/paru-bin.git "$tmpdir/paru-bin"
   pushd "$tmpdir/paru-bin" >/dev/null
@@ -80,9 +88,26 @@ ensure_paru() {
 
 install_aur_failsafe() {
   command -v paru &>/dev/null || { warn "paru مش موجود؛ تخطى كل حزم AUR"; return; }
+
   for pkg in "$@"; do
     step "تثبيت AUR: $pkg"
-    paru -S --noconfirm --needed "$pkg" || { warn "فشل تثبيت $pkg"; echo "$pkg" >> "$MISSING_PKGS_FILE"; }
+
+    if paru -Qi "$pkg" &>/dev/null; then
+      ok "$pkg مثبت بالفعل"
+      continue
+    fi
+
+    if [[ "$pkg" == "arch-gaming-meta" ]]; then
+      echo "اختيار تلقائي lib32-nvidia-utils للباكج $pkg"
+      echo "2" | paru -S --needed --noconfirm "$pkg"
+    else
+      paru -S --needed --noconfirm "$pkg"
+    fi
+
+    if [[ $? -ne 0 ]]; then
+      warn "فشل تثبيت $pkg"
+      echo "$pkg" >> "$MISSING_PKGS_FILE"
+    fi
   done
 }
 
@@ -91,9 +116,16 @@ require_internet
 
 # ---- pacman.conf ----
 step "تصحيح إعدادات pacman.conf"
+# إزالة أي وجود سابق لـ ILoveCandy و Color
 sudo sed -i '/ILoveCandy/d' /etc/pacman.conf
-grep -q '^ILoveCandy' /etc/pacman.conf || sudo sed -i '/^Color/a ILoveCandy' /etc/pacman.conf
-ok "تم"
+sudo sed -i '/^#*Color/d' /etc/pacman.conf
+# إضافة Color و ILoveCandy داخل [options]
+sudo sed -i '/\[options\]/a Color\nILoveCandy' /etc/pacman.conf
+ok "تم تفعيل Color و ILoveCandy"
+
+# ---- تحديث قاعدة بيانات pacman ----
+step "تحديث قاعدة بيانات الحزم"
+sudo pacman -Sy --noconfirm || warn "⚠ تحديث قاعدة بيانات pacman فشل، استمر على مسؤوليتك"
 
 # ---- تحديث النظام & Flatpak ----
 step "تحديث النظام وإضافة Flathub"
@@ -155,9 +187,9 @@ EOF
 sudo sysctl --system >/dev/null 2>&1 || true
 ok "تم"
 
-# ---- AUR ----
+# ---- تثبيت حزم من AUR ----
 ensure_paru
-step "تثبيت حزم من AUR"
+step "تثبيت حزم من AUR (تلقائي)"
 install_aur_failsafe \
   ttf-amiri ttf-sil-harmattan ffmpegthumbs-git \
   autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
@@ -194,7 +226,6 @@ sudo pacman -Rns --noconfirm $(pacman -Qtdq || true) || true
 paru -Sc --noconfirm || true
 sudo journalctl --vacuum-time=7d || true
 flatpak uninstall --unused -y || true
-
 safe_rm_if_exists "$HOME/.cache/"*
 
 # ---- نهاية ----
