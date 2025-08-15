@@ -155,8 +155,8 @@ ok "تم تحديث mirrorlist"
 step "تثبيت الحزم الأساسية"
 install_pacman_checked \
   archlinux-keyring git base-devel pacman-contrib \
-  noto-fonts noto-fonts-emoji noto-fonts-extra timeshift \
-  ttf-dejavu ttf-liberation ttf-scheherazade-new \
+  noto-fonts noto-fonts-emoji timeshift \
+  ttf-dejavu ttf-liberation \
   mpv mkvtoolnix-gui fastfetch firefox qbittorrent \
   power-profiles-daemon ufw gamemode lib32-gamemode \
   xdg-user-dirs networkmanager ntp zip gwenview
@@ -191,7 +191,7 @@ ok "تم"
 ensure_paru
 step "تثبيت حزم من AUR (تلقائي)"
 install_aur_failsafe \
-  ttf-amiri ttf-sil-harmattan ffmpegthumbs-git \
+  ffmpegthumbs-git \
   autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
   subtitlecomposer arch-gaming-meta visual-studio-code-bin
 
