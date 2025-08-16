@@ -191,7 +191,7 @@ ok "تم"
 ensure_paru
 step "تثبيت حزم من AUR (تلقائي)"
 install_aur_failsafe \
-  ffmpegthumbs-git \
+  ffmpegthumbs-git etcher-bin \
   autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
   subtitlecomposer arch-gaming-meta visual-studio-code-bin
 
