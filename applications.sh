@@ -60,8 +60,4 @@ for app in "${apps[@]}"; do
   flatpak install -y flathub "$app"
 done
 
-# تثبيت tailscale في الآخر
-echo "🐦 تثبيت tailscale (هيحتاج تدخل يدوي)..."
-curl -fsSL https://tailscale.com/install.sh | sh
-
 echo "✅ تم التثبيت بنجاح!"
