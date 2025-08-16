@@ -191,9 +191,9 @@ ok "تم"
 ensure_paru
 step "تثبيت حزم من AUR (تلقائي)"
 install_aur_failsafe \
-  ffmpegthumbs-git \
+  ffmpegthumbs-git arch-gaming-meta proton-ge-custom-bin \
   autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
-  subtitlecomposer arch-gaming-meta visual-studio-code-bin
+  subtitlecomposer visual-studio-code-bin
 
 # ---- checkupdates timer ----
 step "إعداد تحديثات يومية"
