@@ -43,13 +43,6 @@ enable_service() {
   fi
 }
 
-safe_rm_if_exists() {
-  shopt -s nullglob
-  local arr=( "$1" )
-  (( ${#arr[@]} )) && rm -rf "${arr[@]}"
-  shopt -u nullglob
-}
-
 require_internet() {
   step "فحص الاتصال بالإنترنت"
   ping -c1 -W3 archlinux.org &>/dev/null && ok "الإنترنت شغال." || err "مفيش اتصال بالإنترنت."
@@ -220,14 +213,61 @@ EOF
 sudo systemctl daemon-reload
 enable_service arch-checkupdates.timer
 
-# ---- تنظيف ----
-step "تنظيف النظام"
-sudo paccache -r || true
-sudo pacman -Rns --noconfirm $(pacman -Qtdq || true) || true
-paru -Sc --noconfirm || true
-sudo journalctl --vacuum-time=7d || true
-flatpak uninstall --unused -y || true
-safe_rm_if_exists "$HOME/.cache/"*
+# ---- تنظيف (Ultimate Cleanup) ----
+step "تشغيل سكربت التنظيف Ultimate Cleanup"
+
+PACMAN_CACHE_DAYS=30
+JOURNAL_DAYS=7
+TMP_DAYS=7
+LOG_SIZE_LIMIT=100M
+
+echo "🧹 بدء تنظيف النظام Ultimate Non-Interactive على Arch Linux..."
+
+# تحديث النظام
+echo "⬆ تحديث النظام..."
+sudo pacman -Syu --noconfirm
+
+# تنظيف pacman cache
+echo "🗑 تنظيف pacman cache..."
+sudo find /var/cache/pacman/pkg/ -type d -name "download-*" -exec rm -rf {} + 2>/dev/null
+sudo find /var/cache/pacman/pkg/ -type f -exec rm -f {} + 2>/dev/null
+sudo paccache -r -k "${PACMAN_CACHE_DAYS}" || true
+
+# إزالة orphan
+ORPHANS=$(pacman -Qdtq || true)
+if [ -n "$ORPHANS" ]; then
+    echo "🗑 إزالة الحزم orphan..."
+    sudo pacman -Rns --noconfirm $ORPHANS
+fi
+
+# تنظيف paru
+if command -v paru &>/dev/null; then
+    echo "🗑 تنظيف Paru cache بالكامل..."
+    rm -rf ~/.cache/paru/* ~/.cache/paru/clone ~/.cache/paru/diff || true
+    paru -Sc --noconfirm || true
+fi
+
+# تنظيف flatpak
+if command -v flatpak &>/dev/null; then
+    echo "🗑 تنظيف flatpak..."
+    flatpak uninstall --unused --assumeyes || true
+    flatpak repair || true
+fi
+
+# journal
+echo "📜 تنظيف journal..."
+sudo journalctl --vacuum-time="${JOURNAL_DAYS}d" || true
+
+# tmp
+echo "🧹 تنظيف /tmp و /var/tmp..."
+sudo find /tmp -type f -mtime +${TMP_DAYS} -delete || true
+sudo find /var/tmp -type f -mtime +${TMP_DAYS} -delete || true
+
+# logs
+echo "📂 حذف ملفات log الكبيرة (> ${LOG_SIZE_LIMIT})..."
+sudo find /var/log -type f -size +${LOG_SIZE_LIMIT} -exec rm -f {} + 2>/dev/null || true
+
+echo "✅ انتهى تنظيف النظام Ultimate Non-Interactive! كل حاجة جاهزة."
 
 # ---- نهاية ----
 END_TIME=$(date +'%F %T')
