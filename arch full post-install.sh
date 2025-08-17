@@ -116,10 +116,8 @@ require_internet
 
 # ---- pacman.conf ----
 step "تصحيح إعدادات pacman.conf"
-# إزالة أي وجود سابق لـ ILoveCandy و Color
 sudo sed -i '/ILoveCandy/d' /etc/pacman.conf
 sudo sed -i '/^#*Color/d' /etc/pacman.conf
-# إضافة Color و ILoveCandy داخل [options]
 sudo sed -i '/\[options\]/a Color\nILoveCandy' /etc/pacman.conf
 ok "تم تفعيل Color و ILoveCandy"
 
@@ -136,7 +134,7 @@ flatpak update --appstream -y || true
 
 # ---- برامج Flatpak ----
 step "تثبيت برامج Flatpak"
-flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim com.github.tchx84.Flatseal || true
+flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim || true
 
 # ---- تحديث المرايا ----
 step "تحديث mirrorlist"
@@ -164,11 +162,10 @@ ok "تم"
 
 # ---- الخدمات الأساسية ----
 step "تفعيل الخدمات"
-SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer thermald.service paccache.timer)
+SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer)
 for svc in "${SERVICES[@]}"; do enable_service "$svc"; done
 sudo ufw enable || true
 sudo timedatectl set-ntp true || true
-id -nG "$USER" | grep -qw gamemode || sudo usermod -aG gamemode "$USER"
 
 # ---- zram ----
 step "تهيئة zram"
@@ -193,7 +190,12 @@ step "تثبيت حزم من AUR (تلقائي)"
 install_aur_failsafe \
   ffmpegthumbs-git arch-gaming-meta proton-ge-custom-bin \
   autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
-  subtitlecomposer visual-studio-code-bin bauh
+  subtitlecomposer visual-studio-code-bin bauh spotify flatseal
+
+# ---- SpotX ----
+step "تعديل Spotify ب SpotX"
+bash <(curl -sSL https://spotx-official.github.io/run.sh) || warn "فشل تشغيل SpotX"
+ok "Spotify اتظبط ب SpotX"
 
 # ---- checkupdates timer ----
 step "إعداد تحديثات يومية"
@@ -232,4 +234,4 @@ safe_rm_if_exists "$HOME/.cache/"*
 END_TIME=$(date +'%F %T')
 ok "✨ خلصنا! بدأ: $START_TIME — انتهى: $END_TIME"
 [[ -s "$MISSING_PKGS_FILE" ]] && warn "📦 حزم مفقودة: $MISSING_PKGS_FILE"
-echo "💡 يفضل إعادة التشغيل علشان zram يشتغل و gamemode يتفعل بعد تسجيل الخروج/الدخول."
+echo "💡 يفضل إعادة التشغيل علشان zram يشتغل."
