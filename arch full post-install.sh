@@ -128,6 +128,7 @@ flatpak update --appstream -y || true
 # ---- برامج Flatpak ----
 step "تثبيت برامج Flatpak"
 flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim || true
+flatpak install -y flathub org.nickvision.tubeconverter || true
 
 # ---- تحديث المرايا ----
 step "تحديث mirrorlist"
