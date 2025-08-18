@@ -127,7 +127,6 @@ flatpak update --appstream -y || true
 
 # ---- برامج Flatpak ----
 step "تثبيت برامج Flatpak"
-flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim || true
 
 # ---- تحديث المرايا ----
 step "تحديث mirrorlist"
