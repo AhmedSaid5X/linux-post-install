@@ -148,8 +148,11 @@ install_pacman_checked \
   noto-fonts noto-fonts-emoji timeshift \
   ttf-dejavu ttf-liberation \
   mpv fastfetch firefox \
-  power-profiles-daemon ufw unrar \
-  xdg-user-dirs networkmanager ntp zip gwenview
+  power-profiles-daemon ufw unrar zip \
+  xdg-user-dirs networkmanager ntp gwenview \
+  btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
+  dosfstools mtools udftools \
+  nfs-utils cifs-utils sshfs
 ok "تم"
 
 # ---- الخدمات الأساسية ----
