@@ -154,7 +154,7 @@ install_pacman_checked \
   xdg-user-dirs networkmanager ntp gwenview \
   btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
   dosfstools mtools udftools \
-  nfs-utils cifs-utils sshfs
+  nfs-utils cifs-utils sshfs partitionmanager
 ok "تم"
 
 # ---- الخدمات الأساسية ----
