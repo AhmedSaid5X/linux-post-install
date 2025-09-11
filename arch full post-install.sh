@@ -107,6 +107,16 @@ install_aur_failsafe() {
 # ========================= تنفيذ =========================
 require_internet
 
+# ---- تفعيل multilib repo ----
+step "تفعيل [multilib] repo"
+if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
+  sudo sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
+  ok "[multilib] اتفعل"
+else
+  ok "[multilib] متفعل بالفعل"
+fi
+sudo pacman -Sy --noconfirm || warn "⚠ تحديث pacman بعد تفعيل multilib فشل"
+
 # ---- pacman.conf ----
 step "تصحيح إعدادات pacman.conf"
 sudo sed -i '/ILoveCandy/d' /etc/pacman.conf
