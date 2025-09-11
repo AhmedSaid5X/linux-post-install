@@ -163,7 +163,7 @@ install_pacman_checked \
   power-profiles-daemon ufw unrar zip \
   xdg-user-dirs networkmanager ntp gwenview \
   btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
-  dosfstools mtools udftools unzip \
+  dosfstools mtools udftools unzip discord \
   nfs-utils cifs-utils sshfs partitionmanager
 ok "تم"
 
