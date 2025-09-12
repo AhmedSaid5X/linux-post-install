@@ -154,7 +154,7 @@ install_pacman_checked \
   archlinux-keyring git base-devel pacman-contrib \
   noto-fonts noto-fonts-emoji timeshift \
   ttf-dejavu ttf-liberation \
-  mpv mkvtoolnix-gui fastfetch firefox qbittorrent \
+  mpv mkvtoolnix-gui fastfetch qbittorrent \
   power-profiles-daemon ufw unrar zip \
   xdg-user-dirs networkmanager ntp gwenview \
   btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
@@ -207,7 +207,7 @@ ok "تم"
 ensure_paru
 step "تثبيت حزم من AUR (تلقائي)"
 install_aur_failsafe \
-  ffmpegthumbs-git proton-ge-custom-bin \
+  ffmpegthumbs-git proton-ge-custom-bin zen-browser-bin \
   autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
   subtitlecomposer visual-studio-code-bin bauh spotify flatseal
 
