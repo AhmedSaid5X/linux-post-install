@@ -163,7 +163,7 @@ install_pacman_checked \
   pipewire pipewire-alsa pipewire-pulse pipewire-jack wireplumber \
   bluez bluez-utils cups cups-pdf system-config-printer \
   hyphen-en lib32-openssl wget curl htop \
-  man-db man-pages texinfo grc bat \
+  man-db man-pages texinfo grc bat lutris gamescope lib32-mangohud gamemode lib32-gamemode goverlay \
   ripgrep fd tree jq yq ncdu pv aria2
 ok "تم"
 
