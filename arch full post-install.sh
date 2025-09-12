@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =========================
-# Arch Post Install - Clean & Auto (Non-Interactive, AUR-safe, arch-gaming-meta auto choice)
+# Arch Post Install - Clean & Auto (Non-Interactive, AUR-safe)
 # =========================
 
 # ---- Config ----
@@ -90,12 +90,7 @@ install_aur_failsafe() {
       continue
     fi
 
-    if [[ "$pkg" == "arch-gaming-meta" ]]; then
-      echo "اختيار تلقائي lib32-nvidia-utils للباكج $pkg"
-      echo "2" | paru -S --needed --noconfirm "$pkg"
-    else
-      paru -S --needed --noconfirm "$pkg"
-    fi
+    paru -S --needed --noconfirm "$pkg"
 
     if [[ $? -ne 0 ]]; then
       warn "فشل تثبيت $pkg"
@@ -164,12 +159,29 @@ install_pacman_checked \
   xdg-user-dirs networkmanager ntp gwenview \
   btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
   dosfstools mtools udftools unzip discord \
-  nfs-utils cifs-utils sshfs partitionmanager
+  nfs-utils cifs-utils sshfs partitionmanager \
+  pipewire pipewire-alsa pipewire-pulse pipewire-jack wireplumber \
+  bluez bluez-utils cups cups-pdf system-config-printer \
+  hyphen-en lib32-openssl wget curl htop \
+  man-db man-pages texinfo grc bat \
+  ripgrep fd tree jq yq ncdu pv aria2
 ok "تم"
+
+# ---- CPU Microcode ----
+step "تثبيت microcode المناسب للمعالج"
+if grep -q "AuthenticAMD" /proc/cpuinfo; then
+  install_pacman_checked amd-ucode
+  ok "AMD microcode اتثبت"
+elif grep -q "GenuineIntel" /proc/cpuinfo; then
+  install_pacman_checked intel-ucode
+  ok "Intel microcode اتثبت"
+else
+  warn "معالج غير معروف، microcode متثبتش"
+fi
 
 # ---- الخدمات الأساسية ----
 step "تفعيل الخدمات"
-SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer)
+SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer bluetooth.service cups.service)
 for svc in "${SERVICES[@]}"; do enable_service "$svc"; done
 sudo ufw enable || true
 sudo timedatectl set-ntp true || true
@@ -215,6 +227,7 @@ ExecStart=/usr/bin/checkupdates || true
 StandardOutput=append:/var/log/arch-updates.log
 StandardError=append:/var/log/arch-updates.log
 EOF
+
 sudo tee /etc/systemd/system/arch-checkupdates.timer >/dev/null <<'EOF'
 [Unit]
 Description=Run arch-checkupdates daily
@@ -225,17 +238,16 @@ RandomizedDelaySec=900
 [Install]
 WantedBy=timers.target
 EOF
+
 sudo systemctl daemon-reload
 enable_service arch-checkupdates.timer
 
 # ---- تنظيف (Ultimate Cleanup) ----
 step "تشغيل سكربت التنظيف Ultimate Cleanup"
-
 PACMAN_CACHE_DAYS=30
 JOURNAL_DAYS=7
 TMP_DAYS=7
 LOG_SIZE_LIMIT=100M
-
 echo "🧹 بدء تنظيف النظام Ultimate Non-Interactive على Arch Linux..."
 
 # تحديث النظام
@@ -288,4 +300,4 @@ echo "✅ انتهى تنظيف النظام Ultimate Non-Interactive! كل حا
 END_TIME=$(date +'%F %T')
 ok "✨ خلصنا! بدأ: $START_TIME — انتهى: $END_TIME"
 [[ -s "$MISSING_PKGS_FILE" ]] && warn "📦 حزم مفقودة: $MISSING_PKGS_FILE"
-echo "💡 يفضل إعادة التشغيل علشان zram يشتغل."
+echo "💡 يفضل إعادة التشغيل علشان zram و microcode يشتغلوا."
