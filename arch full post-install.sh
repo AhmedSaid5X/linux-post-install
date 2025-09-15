@@ -115,7 +115,7 @@ sudo pacman -Sy --noconfirm || warn "⚠ تحديث قاعدة بيانات pacm
 
 # ---- تحديث النظام & Flatpak ----
 step "تحديث النظام وإضافة Flathub"
-install_pacman_checked flatpak reflector
+install_pacman_checked flatpak
 sudo pacman -Syu --noconfirm || true
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
 flatpak update --appstream -y || true
