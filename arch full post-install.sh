@@ -195,7 +195,6 @@ ZCONF="/etc/systemd/zram-generator.conf"
 # ---- sysctl ----
 step "ضبط sysctl"
 sudo tee /etc/sysctl.d/99-tuned.conf >/dev/null <<'EOF'
-vm.swappiness = 10
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 vm.vfs_cache_pressure = 75
