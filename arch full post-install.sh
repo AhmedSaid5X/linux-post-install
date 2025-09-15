@@ -2,8 +2,6 @@
 set -euo pipefail
 
 START_TIME=$(date +'%F %T')
-LOG_FILE="$HOME/arch-post-install.log"
-exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "🟢 بدء السكربت Non-Interactive: $START_TIME"
 
@@ -182,4 +180,3 @@ echo "✅ انتهى تنظيف النظام Ultimate Non-Interactive!"
 
 END_TIME=$(date +'%F %T')
 echo "✨ خلصنا! بدأ: $START_TIME — انتهى: $END_TIME"
-echo "🔗 كل التفاصيل مسجلة في: $LOG_FILE"
