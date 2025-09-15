@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+trap 'echo "❌ حدث خطأ أثناء تنفيذ السكربت"; exit 1' ERR
 
 START_TIME=$(date +'%F %T')
 
@@ -13,8 +14,12 @@ warn() { echo "⚠️ $1"; }
 enable_service() {
     local svc="$1"
     if systemctl list-unit-files | grep -q "^$svc"; then
-        sudo systemctl enable --now "$svc" || true
-        ok "تم تفعيل $svc"
+        if ! systemctl is-enabled --quiet "$svc"; then
+            sudo systemctl enable --now "$svc" || true
+            ok "تم تفعيل $svc"
+        else
+            ok "$svc مفعل بالفعل"
+        fi
     else
         warn "$svc غير موجود"
     fi
@@ -30,20 +35,23 @@ sudo sed -i '/\[options\]/a Color\nILoveCandy' /etc/pacman.conf
 ok "تم تفعيل الألوان و ILoveCandy"
 
 # =========================
-# 2️⃣ تحديث النظام
+# 2️⃣ تحديث النظام مرة واحدة
 # =========================
 step "تحديث النظام"
 sudo pacman -Syu --noconfirm
 ok "النظام محدث"
 
 # =========================
-# 3️⃣ تثبيت paru (AUR helper)
+# 3️⃣ تثبيت paru (AUR helper) مع retry/check
 # =========================
 step "تثبيت paru"
 if ! command -v paru &>/dev/null; then
     sudo pacman -S --needed --noconfirm git base-devel
-    git clone https://aur.archlinux.org/paru.git /tmp/paru
-    (cd /tmp/paru && makepkg -si --noconfirm)
+    if ! git clone https://aur.archlinux.org/paru.git /tmp/paru; then
+        warn "تعذر استنساخ AUR repo، حاول مرة أخرى"
+        exit 1
+    fi
+    (cd /tmp/paru && makepkg -si --noconfirm) || { warn "فشل تثبيت paru"; exit 1; }
     rm -rf /tmp/paru
     ok "تم تثبيت paru"
 else
@@ -51,11 +59,13 @@ else
 fi
 
 # =========================
-# 4️⃣ إضافة مستودعات Flatpak
+# 4️⃣ إضافة مستودعات Flatpak مع check
 # =========================
 step "إضافة Flathub إلى Flatpak"
 sudo pacman -S --needed --noconfirm flatpak
-sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+if ! sudo flatpak remote-list | grep -q flathub; then
+    sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || warn "فشل إضافة Flathub"
+fi
 ok "تم إضافة Flathub"
 
 # =========================
@@ -82,7 +92,7 @@ paru -S --needed --noconfirm ffmpegthumbs-git zen-browser-bin bauh spotify
 ok "تم تثبيت حزم AUR"
 
 # =========================
-# 7️⃣ تثبيت SpotX (بدون تعديل الأمان)
+# 7️⃣ تثبيت SpotX
 # =========================
 step "تثبيت SpotX"
 bash <(curl -sSL https://spotx-official.github.io/run.sh)
@@ -115,7 +125,7 @@ else
 fi
 
 # =========================
-# 9️⃣ تفعيل الخدمات
+# 9️⃣ تفعيل الخدمات مع check
 # =========================
 step "تفعيل الخدمات"
 SERVICES=(
@@ -128,7 +138,7 @@ for svc in "${SERVICES[@]}"; do
     enable_service "$svc"
 done
 
-sudo ufw enable || true
+sudo ufw status | grep -q "active" || sudo ufw enable
 sudo timedatectl set-ntp true || true
 ok "تم تفعيل كل الخدمات المهمة"
 
@@ -141,9 +151,6 @@ PACMAN_KEEP_VERSIONS=3
 JOURNAL_DAYS=7
 TMP_DAYS=7
 LOG_SIZE_LIMIT=100M
-
-# تحديث
-sudo pacman -Syu --noconfirm
 
 # pacman cache
 sudo paccache -r -k "${PACMAN_KEEP_VERSIONS}" || true
