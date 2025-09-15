@@ -3,77 +3,94 @@ set -euo pipefail
 
 START_TIME=$(date +'%F %T')
 
-echo "🟢 بدء السكربت Non-Interactive: $START_TIME"
+# =========================
+# Functions
+# =========================
+step() { echo -e "\n🔹 $1..."; }
+ok()   { echo "✅ $1"; }
+warn() { echo "⚠️ $1"; }
 
-# ------------------------------
-# 1️⃣ تفعيل الألوان وILoveCandy
-# ------------------------------
-echo "🔧 تفعيل الألوان وILoveCandy في pacman.conf..."
+enable_service() {
+    local svc="$1"
+    if systemctl list-unit-files | grep -q "^$svc"; then
+        sudo systemctl enable --now "$svc" || true
+        ok "تم تفعيل $svc"
+    else
+        warn "$svc غير موجود"
+    fi
+}
+
+# =========================
+# 1️⃣ تفعيل الألوان و ILoveCandy
+# =========================
+step "تفعيل الألوان و ILoveCandy في pacman.conf"
 sudo sed -i '/ILoveCandy/d' /etc/pacman.conf
 sudo sed -i '/^#*Color/d' /etc/pacman.conf
 sudo sed -i '/\[options\]/a Color\nILoveCandy' /etc/pacman.conf
-echo "✅ تم تفعيل الألوان وILoveCandy"
+ok "تم تفعيل الألوان و ILoveCandy"
 
-# ------------------------------
+# =========================
 # 2️⃣ تحديث النظام
-# ------------------------------
-echo "🔄 تحديث قاعدة بيانات الحزم..."
+# =========================
+step "تحديث النظام"
 sudo pacman -Syu --noconfirm
+ok "النظام محدث"
 
-# ------------------------------
+# =========================
 # 3️⃣ تثبيت paru (AUR helper)
-# ------------------------------
-echo "📦 تثبيت paru..."
-sudo pacman -S --needed --noconfirm git base-devel
-cd /tmp
-git clone https://aur.archlinux.org/paru.git
-cd paru
-makepkg -si --noconfirm
-cd ~
-rm -rf /tmp/paru
-echo "✅ تم تثبيت paru"
+# =========================
+step "تثبيت paru"
+if ! command -v paru &>/dev/null; then
+    sudo pacman -S --needed --noconfirm git base-devel
+    git clone https://aur.archlinux.org/paru.git /tmp/paru
+    (cd /tmp/paru && makepkg -si --noconfirm)
+    rm -rf /tmp/paru
+    ok "تم تثبيت paru"
+else
+    ok "paru موجود بالفعل"
+fi
 
-# ------------------------------
+# =========================
 # 4️⃣ إضافة مستودعات Flatpak
-# ------------------------------
-echo "🌐 إضافة Flathub إلى Flatpak..."
+# =========================
+step "إضافة Flathub إلى Flatpak"
 sudo pacman -S --needed --noconfirm flatpak
 sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-echo "✅ تم إضافة Flathub"
+ok "تم إضافة Flathub"
 
-# ------------------------------
-# 5️⃣ تثبيت الحزم الأساسية من pacman
-# ------------------------------
-echo "📦 تثبيت الحزم الأساسية..."
+# =========================
+# 5️⃣ تثبيت الحزم الأساسية
+# =========================
+step "تثبيت الحزم الأساسية"
 sudo pacman -S --needed --noconfirm \
-base-devel pacman-contrib \
-noto-fonts noto-fonts-emoji timeshift \
-ttf-dejavu ttf-liberation \
-fastfetch ntp gwenview \
-btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
-dosfstools mtools udftools unzip \
-partitionmanager hyphen-en \
-power-profiles-daemon ufw unrar zip \
-mpv
-echo "✅ تم تثبيت كل الحزم الأساسية"
+    base-devel pacman-contrib \
+    noto-fonts noto-fonts-emoji timeshift \
+    ttf-dejavu ttf-liberation \
+    fastfetch ntp gwenview \
+    btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
+    dosfstools mtools udftools unzip \
+    partitionmanager hyphen-en \
+    power-profiles-daemon ufw unrar zip \
+    mpv
+ok "تم تثبيت الحزم الأساسية"
 
-# ------------------------------
-# 6️⃣ تثبيت الحزم من AUR
-# ------------------------------
-echo "📦 تثبيت الحزم من AUR..."
+# =========================
+# 6️⃣ تثبيت حزم من AUR
+# =========================
+step "تثبيت الحزم من AUR"
 paru -S --needed --noconfirm ffmpegthumbs-git zen-browser-bin bauh spotify
-echo "✅ تم تثبيت كل حزم AUR"
+ok "تم تثبيت حزم AUR"
 
-# ------------------------------
-# 7️⃣ تثبيت SpotX
-# ------------------------------
-echo "🎵 تثبيت SpotX..."
+# =========================
+# 7️⃣ تثبيت SpotX (بدون تعديل الأمان)
+# =========================
+step "تثبيت SpotX"
 bash <(curl -sSL https://spotx-official.github.io/run.sh)
-echo "✅ تم تثبيت SpotX"
+ok "تم تثبيت SpotX"
 
-# ------------------------------
-# 8️⃣ تثبيت كل الحزم الاختيارية مع سؤال واحد
-# ------------------------------
+# =========================
+# 8️⃣ تثبيت الحزم الاختيارية
+# =========================
 pacman_optional=(
     "mkvtoolnix-gui" "discord" "lutris" "gamescope"
     "lib32-mangohud" "gamemode" "lib32-gamemode" "goverlay"
@@ -88,65 +105,48 @@ flatpak_optional=(
 
 read -p "⚡ هل تريد تثبيت كل الحزم الاختيارية؟ (y/n): " ans
 if [[ "$ans" =~ ^[Yy]$ ]]; then
-    echo "⚡ جاري تثبيت الحزم الاختيارية..."
-
-    # pacman
+    step "تثبيت الحزم الاختيارية"
     sudo pacman -S --needed --noconfirm "${pacman_optional[@]}"
-
-    # AUR
     paru -S --needed --noconfirm "${aur_optional[@]}"
-
-    # Flatpak
-    for pkg in "${flatpak_optional[@]}"; do
-        flatpak install -y flathub "$pkg" || true
-    done
-
-    echo "✅ تم تثبيت كل الحزم الاختيارية"
+    flatpak install -y flathub "${flatpak_optional[@]}" || true
+    ok "تم تثبيت كل الحزم الاختيارية"
 else
-    echo "⚡ تم تخطي تثبيت الحزم الاختيارية"
+    warn "تم تخطي الحزم الاختيارية"
 fi
 
-# ------------------------------
-# 9️⃣ تفعيل الخدمات تلقائيًا
-# ------------------------------
-echo "⚡ تفعيل الخدمات..."
+# =========================
+# 9️⃣ تفعيل الخدمات
+# =========================
+step "تفعيل الخدمات"
 SERVICES=(
     "ufw.service"
     "power-profiles-daemon.service"
     "fstrim.timer"
     "paccache.timer"
 )
-enable_service() {
-    local svc="$1"
-    if systemctl list-unit-files | grep -q "^$svc"; then
-        sudo systemctl enable --now "$svc" || true
-        echo "✅ تم تفعيل $svc"
-    fi
-}
 for svc in "${SERVICES[@]}"; do
     enable_service "$svc"
 done
 
 sudo ufw enable || true
 sudo timedatectl set-ntp true || true
-echo "✅ تم تفعيل كل الخدمات المهمة"
+ok "تم تفعيل كل الخدمات المهمة"
 
-# ------------------------------
+# =========================
 # 🔟 تنظيف النظام Ultimate Non-Interactive
-# ------------------------------
-echo "🧹 بدء تنظيف النظام Ultimate Cleanup..."
+# =========================
+step "بدء تنظيف النظام Ultimate Cleanup"
 
-PACMAN_CACHE_DAYS=30
+PACMAN_KEEP_VERSIONS=3
 JOURNAL_DAYS=7
 TMP_DAYS=7
 LOG_SIZE_LIMIT=100M
 
+# تحديث
 sudo pacman -Syu --noconfirm
 
 # pacman cache
-sudo find /var/cache/pacman/pkg/ -type d -name "download-*" -exec rm -rf {} + 2>/dev/null
-sudo find /var/cache/pacman/pkg/ -type f -exec rm -f {} + 2>/dev/null
-sudo paccache -r -k "${PACMAN_CACHE_DAYS}" || true
+sudo paccache -r -k "${PACMAN_KEEP_VERSIONS}" || true
 
 # إزالة orphan
 ORPHANS=$(pacman -Qdtq || true)
@@ -156,7 +156,7 @@ fi
 
 # تنظيف paru
 if command -v paru &>/dev/null; then
-    rm -rf ~/.cache/paru/* ~/.cache/paru/clone ~/.cache/paru/diff || true
+    rm -rf ~/.cache/paru/* || true
     paru -Sc --noconfirm || true
 fi
 
@@ -176,7 +176,7 @@ sudo find /var/tmp -type f -mtime +${TMP_DAYS} -delete || true
 # حذف ملفات log الكبيرة
 sudo find /var/log -type f -size +${LOG_SIZE_LIMIT} -exec rm -f {} + 2>/dev/null || true
 
-echo "✅ انتهى تنظيف النظام Ultimate Non-Interactive!"
+ok "انتهى تنظيف النظام"
 
 END_TIME=$(date +'%F %T')
-echo "✨ خلصنا! بدأ: $START_TIME — انتهى: $END_TIME"
+echo -e "\n✨ خلصنا! بدأ: $START_TIME — انتهى: $END_TIME"
