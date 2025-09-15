@@ -137,8 +137,7 @@ install_pacman_checked \
   btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
   dosfstools mtools udftools unzip discord \
   nfs-utils cifs-utils sshfs partitionmanager \
-  pipewire pipewire-alsa pipewire-pulse pipewire-jack wireplumber \
-  bluez bluez-utils cups cups-pdf system-config-printer \
+  cups cups-pdf system-config-printer \
   hyphen-en lib32-openssl wget curl htop \
   man-db man-pages texinfo grc bat lutris gamescope lib32-mangohud gamemode lib32-gamemode goverlay \
   ripgrep fd tree jq yq ncdu pv aria2
@@ -146,7 +145,7 @@ ok "تم"
 
 # ---- الخدمات الأساسية ----
 step "تفعيل الخدمات"
-SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer bluetooth.service cups.service)
+SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer cups.service)
 for svc in "${SERVICES[@]}"; do enable_service "$svc"; done
 sudo ufw enable || true
 sudo timedatectl set-ntp true || true
