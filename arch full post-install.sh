@@ -203,20 +203,13 @@ ZCONF="/etc/systemd/zram-generator.conf"
 
 # ---- sysctl ----
 step "ضبط sysctl"
-TOTAL_RAM_MB=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
-if (( TOTAL_RAM_MB < 8000000 )); then
-  SWAPPINESS=60
-else
-  SWAPPINESS=10
-fi
-
 sudo tee /etc/sysctl.d/99-tuned.conf >/dev/null <<EOF
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 vm.vfs_cache_pressure = 75
 EOF
 sudo sysctl --system >/dev/null 2>&1 || true
-ok "تم ضبط sysctl (swappiness=$SWAPPINESS)"
+ok "تم ضبط sysctl"
 
 # ---- تثبيت حزم من AUR ----
 ensure_paru
