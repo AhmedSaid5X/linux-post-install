@@ -138,7 +138,7 @@ install_pacman_checked \
   unrar               # ضغط
 ok "تم تثبيت الحزم الأساسية"
 
-# Flatpak أساسي
+# Flatpak اختيارى
 flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim \ # وسائط
 flatpak install -y flathub org.nickvision.tubeconverter             # وسائط
 
