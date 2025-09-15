@@ -63,15 +63,15 @@ echo "✅ تم تثبيت كل الحزم الأساسية"
 # 6️⃣ تثبيت الحزم من AUR
 # ------------------------------
 echo "📦 تثبيت الحزم من AUR..."
-paru -S --needed --noconfirm ffmpegthumbs-git zen-browser-bin bauch
+paru -S --needed --noconfirm ffmpegthumbs-git zen-browser-bin bauh spotify
 echo "✅ تم تثبيت كل حزم AUR"
 
 # ------------------------------
-# 7️⃣ تثبيت Spotify
+# 7️⃣ تثبيت SpotX
 # ------------------------------
-echo "🎵 تثبيت Spotify..."
+echo "🎵 تثبيت SpotX..."
 bash <(curl -sSL https://spotx-official.github.io/run.sh)
-echo "✅ تم تثبيت Spotify"
+echo "✅ تم تثبيت SpotX"
 
 # ------------------------------
 # 8️⃣ تثبيت كل الحزم الاختيارية مع سؤال واحد
