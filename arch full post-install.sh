@@ -136,7 +136,7 @@ install_pacman_checked \
   xdg-user-dirs networkmanager ntp gwenview \
   btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
   dosfstools mtools udftools unzip discord \
-  nfs-utils cifs-utils sshfs partitionmanager \
+  partitionmanager \
   cups cups-pdf system-config-printer \
   hyphen-en lib32-openssl wget curl \
   lutris gamescope lib32-mangohud gamemode lib32-gamemode goverlay \
