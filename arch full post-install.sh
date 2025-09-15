@@ -222,4 +222,3 @@ echo "✅ انتهى تنظيف النظام Ultimate Non-Interactive! كل حا
 END_TIME=$(date +'%F %T')
 ok "✨ خلصنا! بدأ: $START_TIME — انتهى: $END_TIME"
 [[ -s "$MISSING_PKGS_FILE" ]] && warn "📦 حزم مفقودة: $MISSING_PKGS_FILE"
-echo "💡 يفضل إعادة التشغيل علشان zram و microcode يشتغلوا."
