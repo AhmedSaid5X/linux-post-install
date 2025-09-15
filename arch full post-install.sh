@@ -138,9 +138,8 @@ install_pacman_checked \
   dosfstools mtools udftools unzip discord \
   nfs-utils cifs-utils sshfs partitionmanager \
   cups cups-pdf system-config-printer \
-  hyphen-en lib32-openssl wget curl htop \
-  man-db man-pages texinfo grc bat lutris gamescope lib32-mangohud gamemode lib32-gamemode goverlay \
-  ripgrep fd tree jq yq ncdu pv aria2
+  hyphen-en lib32-openssl wget curl \
+  lutris gamescope lib32-mangohud gamemode lib32-gamemode goverlay \
 ok "تم"
 
 # ---- الخدمات الأساسية ----
