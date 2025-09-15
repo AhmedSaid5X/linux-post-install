@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =========================
-# Arch Post Install - Essential vs Optional (Full Script with Classification)
+# Arch Post Install - Essential vs Optional with package classification
 # =========================
 
 # ---- Config ----
@@ -103,78 +103,77 @@ flatpak update --appstream -y || true
 
 # ========================= تثبيت الحزم حسب الفئة =========================
 
-# ---- الأساسيات (Essential) ----
-# كل الحزم الضرورية للنظام والبرامج المهمة
+# ---- كل الحزم مع التصنيف والتعليقات ----
+# Essential
 install_pacman_checked \
-  mpv \               # وسائط
-  git \               # تطوير
-  base-devel \        # تطوير
-  pacman-contrib \    # نظامي
-  noto-fonts \        # خطوط
-  noto-fonts-emoji \  # خطوط
-  ttf-dejavu \        # خطوط
-  ttf-liberation \    # خطوط
-  networkmanager \    # نظامي
-  ufw \               # نظامي
-  power-profiles-daemon \ # نظامي
-  ntp \               # نظامي
-  cups \              # نظامي
-  cups-pdf \          # نظامي
-  system-config-printer \ # نظامي
-  xdg-user-dirs \     # نظامي
-  partitionmanager \  # نظامي
-  wget \              # أداة مساعدة
-  curl \              # أداة مساعدة
-  btrfs-progs \       # ملفات
-  xfsprogs \          # ملفات
-  f2fs-tools \        # ملفات
-  exfatprogs \        # ملفات
-  ntfs-3g \           # ملفات
-  dosfstools \        # ملفات
-  mtools \            # ملفات
-  udftools \          # ملفات
-  unzip \             # ضغط
-  zip \               # ضغط
-  unrar               # ضغط
+  mpv \                     # وسائط: مشغل فيديو
+  git \                     # تطوير: أدوات git
+  base-devel \              # تطوير: أدوات build
+  pacman-contrib \          # نظامي: أدوات pacman مساعدة
+  noto-fonts \              # خطوط: نصوص عامة
+  noto-fonts-emoji \        # خطوط: إيموجي
+  ttf-dejavu \              # خطوط
+  ttf-liberation \          # خطوط
+  networkmanager \          # نظامي: إدارة الشبكات
+  ufw \                     # نظامي: جدار حماية
+  power-profiles-daemon \   # نظامي: إدارة الطاقة
+  ntp \                     # نظامي: مزامنة الوقت
+  cups \                    # نظامي: الطباعة
+  cups-pdf \                # نظامي: الطباعة PDF
+  system-config-printer \   # نظامي: إعداد الطابعات
+  xdg-user-dirs \           # نظامي: إنشاء مجلدات المستخدم
+  partitionmanager \        # نظامي: إدارة الأقراص
+  wget \                     # أداة مساعدة: تحميل
+  curl \                     # أداة مساعدة: تحميل
+  btrfs-progs \              # ملفات: دعم BTRFS
+  xfsprogs \                 # ملفات: دعم XFS
+  f2fs-tools \               # ملفات: دعم F2FS
+  exfatprogs \               # ملفات: دعم exFAT
+  ntfs-3g \                  # ملفات: دعم NTFS
+  dosfstools \               # ملفات: دعم FAT
+  mtools \                   # ملفات: أدوات FAT
+  udftools \                 # ملفات: دعم UDF
+  unzip \                    # ضغط: unzip
+  zip \                      # ضغط: zip
+  unrar                       # ضغط: unrar
 ok "تم تثبيت الحزم الأساسية"
 
-# Flatpak اختيارى
-flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim \ # وسائط
-flatpak install -y flathub org.nickvision.tubeconverter             # وسائط
+# Flatpak Essential
+flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim \ # وسائط: تشغيل Jellyfin مع MPV
+flatpak install -y flathub org.nickvision.tubeconverter             # وسائط: تحويل الفيديو
 
-# AUR أساسي
+# AUR Essential
 ensure_paru
 install_aur_failsafe \
-  zen-browser-bin \       # تصفح
-  ffmpegthumbs-git        # وسائط
+  zen-browser-bin \       # تصفح: متصفح Zen
+  ffmpegthumbs-git        # وسائط: توليد مصغرات الفيديو
 ok "تم تثبيت الحزم الأساسية من AUR"
 
-# ---- الاختيارية (Optional) ----
-# الحزم الترفيهية أو إضافات اختيارية
+# Optional
 install_pacman_checked \
-  mkvtoolnix-gui \    # وسائط
-  fastfetch \         # نظامي
-  qbittorrent \       # وسائط
-  gwenview \          # وسائط
-  discord \           # تواصل
-  lutris \            # ألعاب
-  gamescope \         # ألعاب
-  lib32-mangohud \    # ألعاب
-  gamemode \           # ألعاب
-  lib32-gamemode \    # ألعاب
-  goverlay            # ألعاب
+  mkvtoolnix-gui \          # وسائط: تعديل MKV
+  fastfetch \               # نظامي: عرض مواصفات النظام
+  qbittorrent \             # وسائط: تحميل تورنت
+  gwenview \                # وسائط: عرض الصور
+  discord \                 # تواصل: دردشة
+  lutris \                  # ألعاب: منصة ألعاب
+  gamescope \               # ألعاب: تحسين الألعاب
+  lib32-mangohud \          # ألعاب: HUD للألعاب
+  gamemode \                 # ألعاب: تحسين الأداء
+  lib32-gamemode \          # ألعاب: نسخة 32-bit
+  goverlay                  # ألعاب: overlays
 ok "تم تثبيت الحزم الاختيارية"
 
 install_aur_failsafe \
-  autosubsync-bin \       # وسائط
-  renamemytvseries-qt-bin \ # وسائط
-  subtitlecomposer \       # وسائط
-  bauh \                   # إدارة برامج
-  visual-studio-code-bin \ # تطوير
-  spotify \                # ترفيه
-  flatseal \               # أداة مساعدة
-  jellyfin-media-player \  # وسائط
-  proton-ge-custom-bin     # ألعاب
+  autosubsync-bin \          # وسائط: مزامنة الترجمة
+  renamemytvseries-qt-bin \  # وسائط: إعادة تسمية المسلسلات
+  subtitlecomposer \         # وسائط: تحرير الترجمة
+  bauh \                      # إدارة: إدارة برامج
+  visual-studio-code-bin \    # تطوير: محرر برمجي
+  spotify \                   # ترفيه: موسيقى
+  flatseal \                  # أداة: إدارة صلاحيات Flatpak
+  jellyfin-media-player \     # وسائط: تشغيل Jellyfin
+  proton-ge-custom-bin        # ألعاب: تشغيل ألعاب ويندوز
 ok "تم تثبيت الحزم الاختيارية من AUR"
 
 # ---- تفعيل الخدمات الأساسية ----
