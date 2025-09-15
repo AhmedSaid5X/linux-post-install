@@ -102,16 +102,6 @@ install_aur_failsafe() {
 # ========================= تنفيذ =========================
 require_internet
 
-# ---- تفعيل multilib repo ----
-step "تفعيل [multilib] repo"
-if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
-  sudo sed -i '/\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
-  ok "[multilib] اتفعل"
-else
-  ok "[multilib] متفعل بالفعل"
-fi
-sudo pacman -Sy --noconfirm || warn "⚠ تحديث pacman بعد تفعيل multilib فشل"
-
 # ---- pacman.conf ----
 step "تصحيح إعدادات pacman.conf"
 sudo sed -i '/ILoveCandy/d' /etc/pacman.conf
@@ -135,19 +125,6 @@ step "تثبيت برامج Flatpak"
 flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim || true
 flatpak install -y flathub org.nickvision.tubeconverter || true
 
-# ---- تحديث المرايا ----
-step "تحديث mirrorlist"
-with_timeout "$REFLECTOR_TIMEOUT" sudo reflector \
-  --country "Egypt,Germany,Netherlands" \
-  --protocol https \
-  --latest 20 \
-  --sort rate \
-  --score 10 \
-  --fastest 20 \
-  --save /etc/pacman.d/mirrorlist || warn "⚠ بعض المرايا فشلت، تم استخدام المرايا المتاحة."
-sudo pacman -Syy || true
-ok "تم تحديث mirrorlist"
-
 # ---- الحزم الأساسية ----
 step "تثبيت الحزم الأساسية"
 install_pacman_checked \
@@ -167,49 +144,12 @@ install_pacman_checked \
   ripgrep fd tree jq yq ncdu pv aria2
 ok "تم"
 
-# ---- CPU Microcode ----
-step "تثبيت microcode المناسب للمعالج"
-if grep -q "AuthenticAMD" /proc/cpuinfo; then
-  install_pacman_checked amd-ucode
-  ok "AMD microcode اتثبت"
-elif grep -q "GenuineIntel" /proc/cpuinfo; then
-  install_pacman_checked intel-ucode
-  ok "Intel microcode اتثبت"
-else
-  warn "معالج غير معروف، microcode متثبتش"
-fi
-
-# تحديث bootloader بعد microcode
-if [[ -d /boot/grub ]]; then
-  step "تحديث grub config"
-  sudo grub-mkconfig -o /boot/grub/grub.cfg || warn "فشل تحديث grub"
-elif [[ -d /boot/loader ]]; then
-  step "تحديث systemd-boot"
-  sudo bootctl update || warn "فشل تحديث systemd-boot"
-fi
-
 # ---- الخدمات الأساسية ----
 step "تفعيل الخدمات"
 SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer bluetooth.service cups.service)
 for svc in "${SERVICES[@]}"; do enable_service "$svc"; done
 sudo ufw enable || true
 sudo timedatectl set-ntp true || true
-
-# ---- zram ----
-step "تهيئة zram"
-install_pacman_checked zram-generator
-ZCONF="/etc/systemd/zram-generator.conf"
-[[ -f "$ZCONF" ]] || { sudo tee "$ZCONF" >/dev/null <<< $'[zram0]\nzram-size = ram / 2\ncompression-algorithm = zstd'; sudo systemctl daemon-reload; warn "zram هيتفعل بعد إعادة التشغيل."; }
-
-# ---- sysctl ----
-step "ضبط sysctl"
-sudo tee /etc/sysctl.d/99-tuned.conf >/dev/null <<EOF
-net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr
-vm.vfs_cache_pressure = 75
-EOF
-sudo sysctl --system >/dev/null 2>&1 || true
-ok "تم ضبط sysctl"
 
 # ---- تثبيت حزم من AUR ----
 ensure_paru
@@ -223,32 +163,6 @@ install_aur_failsafe \
 step "تعديل Spotify ب SpotX"
 bash <(curl -sSL https://spotx-official.github.io/run.sh) || warn "فشل تشغيل SpotX"
 ok "Spotify اتظبط ب SpotX"
-
-# ---- checkupdates timer ----
-step "إعداد تحديثات يومية"
-sudo tee /etc/systemd/system/arch-checkupdates.service >/dev/null <<'EOF'
-[Unit]
-Description=Arch checkupdates logger
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/checkupdates || true
-StandardOutput=append:/var/log/arch-updates.log
-StandardError=append:/var/log/arch-updates.log
-EOF
-
-sudo tee /etc/systemd/system/arch-checkupdates.timer >/dev/null <<'EOF'
-[Unit]
-Description=Run arch-checkupdates daily
-[Timer]
-OnCalendar=daily
-Persistent=true
-RandomizedDelaySec=900
-[Install]
-WantedBy=timers.target
-EOF
-
-sudo systemctl daemon-reload
-enable_service arch-checkupdates.timer
 
 # ---- تنظيف (Ultimate Cleanup) ----
 step "تشغيل سكربت التنظيف Ultimate Cleanup"
