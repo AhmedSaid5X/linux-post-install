@@ -9,7 +9,6 @@ set -euo pipefail
 AUR_TIMEOUT=${AUR_TIMEOUT:-180}
 PARU_MAKE_TIMEOUT=${PARU_MAKE_TIMEOUT:-300}
 FLATPAK_TIMEOUT=${FLATPAK_TIMEOUT:-180}
-REFLECTOR_TIMEOUT=${REFLECTOR_TIMEOUT:-60}
 
 # ---- Logging & UI ----
 START_TIME=$(date +'%F %T')
@@ -120,101 +119,132 @@ sudo pacman -Syu --noconfirm || true
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
 flatpak update --appstream -y || true
 
-# ---- برامج Flatpak ----
+# ========================= تثبيت الحزم حسب الأولوية =========================
+
+# ---- المرحلة 1: الحزم الأساسية للنظام ----
+step "تثبيت الحزم الأساسية للنظام"
+install_pacman_checked \
+  archlinux-keyring git base-devel pacman-contrib \
+  noto-fonts noto-fonts-emoji ttf-dejavu ttf-liberation
+ok "تم تثبيت الحزم الأساسية للنظام"
+
+# ---- المرحلة 2: إدارة النظام والخدمات ----
+step "تثبيت أدوات إدارة النظام والخدمات"
+install_pacman_checked \
+  networkmanager ufw power-profiles-daemon ntp \
+  cups cups-pdf system-config-printer
+ok "تم تثبيت أدوات إدارة النظام والخدمات"
+
+# ---- المرحلة 3: أدوات مساعدة للنظام والتخصيص ----
+step "تثبيت الأدوات المساعدة للنظام"
+install_pacman_checked \
+  xdg-user-dirs partitionmanager wget curl
+ok "تم تثبيت الأدوات المساعدة للنظام"
+
+# ---- المرحلة 4: دعم صيغ الملفات والأقراص ----
+step "تثبيت أدوات دعم صيغ الملفات والأقراص"
+install_pacman_checked \
+  btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
+  dosfstools mtools udftools unzip zip unrar
+ok "تم تثبيت دعم صيغ الملفات والأقراص"
+
+# ---- المرحلة 5: برامج الوسائط والتسلية ----
+step "تثبيت برامج الوسائط"
+install_pacman_checked \
+  mpv mkvtoolnix-gui fastfetch qbittorrent gwenview discord
+ok "تم تثبيت برامج الوسائط والتسلية"
+
+# ---- المرحلة 6: ألعاب وتحسينات الأداء ----
+step "تثبيت أدوات الألعاب وتحسين الأداء"
+install_pacman_checked \
+  lutris gamescope lib32-mangohud gamemode lib32-gamemode goverlay
+ok "تم تثبيت أدوات الألعاب"
+
+# ---- المرحلة 7: برامج Flatpak ----
 step "تثبيت برامج Flatpak"
 flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim || true
 flatpak install -y flathub org.nickvision.tubeconverter || true
+ok "تم تثبيت برامج Flatpak"
 
-# ---- الحزم الأساسية ----
-step "تثبيت الحزم الأساسية"
-install_pacman_checked \
-  archlinux-keyring git base-devel pacman-contrib \
-  noto-fonts noto-fonts-emoji timeshift \
-  ttf-dejavu ttf-liberation \
-  mpv mkvtoolnix-gui fastfetch qbittorrent \
-  power-profiles-daemon ufw unrar zip \
-  xdg-user-dirs networkmanager ntp gwenview \
-  btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
-  dosfstools mtools udftools unzip discord \
-  partitionmanager \
-  cups cups-pdf system-config-printer \
-  hyphen-en lib32-openssl wget curl \
-  lutris gamescope lib32-mangohud gamemode lib32-gamemode goverlay \
-ok "تم"
-
-# ---- الخدمات الأساسية ----
-step "تفعيل الخدمات"
-SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer cups.service)
-for svc in "${SERVICES[@]}"; do enable_service "$svc"; done
-sudo ufw enable || true
-sudo timedatectl set-ntp true || true
-
-# ---- تثبيت حزم من AUR ----
+# ---- المرحلة 8: حزم AUR حسب الأولوية ----
 ensure_paru
-step "تثبيت حزم من AUR (تلقائي)"
+
+# المرحلة 1: أساسية لتشغيل برامج مهمة
+step "تثبيت AUR الأساسية لتشغيل برامج مهمة"
 install_aur_failsafe \
-  ffmpegthumbs-git proton-ge-custom-bin zen-browser-bin \
-  autosubsync-bin renamemytvseries-qt-bin jellyfin-media-player \
-  subtitlecomposer visual-studio-code-bin bauh spotify flatseal
+  jellyfin-media-player \
+  proton-ge-custom-bin
+ok "تم تثبيت الحزم الأساسية لتشغيل البرامج"
+
+# المرحلة 2: تحسينات وأدوات مساعدة
+step "تثبيت AUR تحسينات وأدوات مساعدة"
+install_aur_failsafe \
+  ffmpegthumbs-git \
+  autosubsync-bin \
+  renamemytvseries-qt-bin \
+  subtitlecomposer
+ok "تم تثبيت الحزم المساعدة"
+
+# المرحلة 3: برامج تطوير وإدارة
+step "تثبيت AUR برامج تطوير وإدارة"
+install_aur_failsafe \
+  visual-studio-code-bin \
+  bauh
+ok "تم تثبيت برامج التطوير والإدارة"
+
+# المرحلة 4: برامج اختيارية وترفيهية
+step "تثبيت AUR برامج اختيارية وترفيهية"
+install_aur_failsafe \
+  zen-browser-bin \
+  spotify \
+  flatseal
+ok "تم تثبيت البرامج الاختيارية والترفيهية"
 
 # ---- SpotX ----
 step "تعديل Spotify ب SpotX"
 bash <(curl -sSL https://spotx-official.github.io/run.sh) || warn "فشل تشغيل SpotX"
 ok "Spotify اتظبط ب SpotX"
 
-# ---- تنظيف (Ultimate Cleanup) ----
+# ---- تفعيل الخدمات الأساسية ----
+step "تفعيل الخدمات"
+SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer cups.service)
+for svc in "${SERVICES[@]}"; do enable_service "$svc"; done
+sudo ufw enable || true
+sudo timedatectl set-ntp true || true
+
+# ---- تنظيف النظام Ultimate Cleanup ----
 step "تشغيل سكربت التنظيف Ultimate Cleanup"
 PACMAN_CACHE_DAYS=30
 JOURNAL_DAYS=7
 TMP_DAYS=7
 LOG_SIZE_LIMIT=100M
-echo "🧹 بدء تنظيف النظام Ultimate Non-Interactive على Arch Linux..."
 
-# تحديث النظام
-echo "⬆ تحديث النظام..."
 sudo pacman -Syu --noconfirm
-
-# تنظيف pacman cache
-echo "🗑 تنظيف pacman cache..."
 sudo find /var/cache/pacman/pkg/ -type d -name "download-*" -exec rm -rf {} + 2>/dev/null
 sudo find /var/cache/pacman/pkg/ -type f -exec rm -f {} + 2>/dev/null
 sudo paccache -r -k "${PACMAN_CACHE_DAYS}" || true
 
-# إزالة orphan
 ORPHANS=$(pacman -Qdtq || true)
 if [ -n "$ORPHANS" ]; then
-    echo "🗑 إزالة الحزم orphan..."
     sudo pacman -Rns --noconfirm $ORPHANS
 fi
 
-# تنظيف paru
 if command -v paru &>/dev/null; then
-    echo "🗑 تنظيف Paru cache بالكامل..."
     rm -rf ~/.cache/paru/* ~/.cache/paru/clone ~/.cache/paru/diff || true
     paru -Sc --noconfirm || true
 fi
 
-# تنظيف flatpak
 if command -v flatpak &>/dev/null; then
-    echo "🗑 تنظيف flatpak..."
     flatpak uninstall --unused --assumeyes || true
     flatpak repair || true
 fi
 
-# journal
-echo "📜 تنظيف journal..."
 sudo journalctl --vacuum-time="${JOURNAL_DAYS}d" || true
-
-# tmp
-echo "🧹 تنظيف /tmp و /var/tmp..."
 sudo find /tmp -type f -mtime +${TMP_DAYS} -delete || true
 sudo find /var/tmp -type f -mtime +${TMP_DAYS} -delete || true
-
-# logs
-echo "📂 حذف ملفات log الكبيرة (> ${LOG_SIZE_LIMIT})..."
 sudo find /var/log -type f -size +${LOG_SIZE_LIMIT} -exec rm -f {} + 2>/dev/null || true
 
-echo "✅ انتهى تنظيف النظام Ultimate Non-Interactive! كل حاجة جاهزة."
+ok "✅ انتهى تنظيف النظام Ultimate Non-Interactive!"
 
 # ---- نهاية ----
 END_TIME=$(date +'%F %T')
