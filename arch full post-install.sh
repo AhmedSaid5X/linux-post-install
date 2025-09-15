@@ -172,32 +172,32 @@ ensure_paru
 # المرحلة 1: أساسية لتشغيل برامج مهمة
 step "تثبيت AUR الأساسية لتشغيل برامج مهمة"
 install_aur_failsafe \
-  jellyfin-media-player \
-  proton-ge-custom-bin
+  zen-browser-bin \
+ ffmpegthumbs-git \
 ok "تم تثبيت الحزم الأساسية لتشغيل البرامج"
 
 # المرحلة 2: تحسينات وأدوات مساعدة
 step "تثبيت AUR تحسينات وأدوات مساعدة"
 install_aur_failsafe \
-  ffmpegthumbs-git \
   autosubsync-bin \
   renamemytvseries-qt-bin \
   subtitlecomposer
+  bauh
 ok "تم تثبيت الحزم المساعدة"
 
 # المرحلة 3: برامج تطوير وإدارة
 step "تثبيت AUR برامج تطوير وإدارة"
 install_aur_failsafe \
   visual-studio-code-bin \
-  bauh
 ok "تم تثبيت برامج التطوير والإدارة"
 
 # المرحلة 4: برامج اختيارية وترفيهية
 step "تثبيت AUR برامج اختيارية وترفيهية"
 install_aur_failsafe \
-  zen-browser-bin \
   spotify \
   flatseal
+  jellyfin-media-player \
+  proton-ge-custom-bin
 ok "تم تثبيت البرامج الاختيارية والترفيهية"
 
 # ---- SpotX ----
