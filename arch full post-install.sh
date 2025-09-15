@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # =========================
-# Arch Post Install - Clean & Auto (Non-Interactive, AUR-safe)
+# Arch Post Install - Essential vs Optional (Full Script with Classification)
 # =========================
 
 # ---- Config ----
@@ -10,7 +10,7 @@ AUR_TIMEOUT=${AUR_TIMEOUT:-180}
 PARU_MAKE_TIMEOUT=${PARU_MAKE_TIMEOUT:-300}
 FLATPAK_TIMEOUT=${FLATPAK_TIMEOUT:-180}
 
-# ---- Logging & UI ----
+# ---- Logging ----
 START_TIME=$(date +'%F %T')
 LOG_FILE="$HOME/arch-post-install-$(date +'%Y%m%d-%H%M%S').log"
 MISSING_PKGS_FILE="$HOME/missing-packages.log"
@@ -21,7 +21,6 @@ step() { echo -e "\n\033[1;36m[$(date +'%H:%M:%S')] ➤ $*\033[0m"; }
 ok()   { echo -e "\033[1;32m✔ $*\033[0m"; }
 warn() { echo -e "\033[1;33m⚠ $*\033[0m"; }
 err()  { echo -e "\033[1;31m✖ $*\033[0m"; }
-
 trap 'err "حصل خطأ! راجع اللوج: $LOG_FILE"' ERR
 
 # ---- Helpers ----
@@ -48,13 +47,9 @@ require_internet() {
 }
 
 remove_pacman_lock() {
-  if [[ -f /var/lib/pacman/db.lck ]]; then
-    warn "تم العثور على قفل pacman موجود، جاري إزالته..."
-    sudo rm -f /var/lib/pacman/db.lck && ok "تم إزالة قفل pacman."
-  fi
+  [[ -f /var/lib/pacman/db.lck ]] && sudo rm -f /var/lib/pacman/db.lck && warn "تم إزالة قفل pacman"
 }
 
-# ---- Pacman ----
 install_pacman_checked() {
   remove_pacman_lock
   local pkgs=("$@")
@@ -65,7 +60,6 @@ install_pacman_checked() {
   (( ${#avail[@]} )) && sudo pacman -S --noconfirm --needed -q "${avail[@]}"
 }
 
-# ---- Paru (AUR helper) ----
 ensure_paru() {
   command -v paru &>/dev/null && { ok "paru موجود"; return; }
   step "تثبيت paru"
@@ -80,21 +74,10 @@ ensure_paru() {
 
 install_aur_failsafe() {
   command -v paru &>/dev/null || { warn "paru مش موجود؛ تخطى كل حزم AUR"; return; }
-
   for pkg in "$@"; do
     step "تثبيت AUR: $pkg"
-
-    if paru -Qi "$pkg" &>/dev/null; then
-      ok "$pkg مثبت بالفعل"
-      continue
-    fi
-
-    paru -S --needed --noconfirm "$pkg"
-
-    if [[ $? -ne 0 ]]; then
-      warn "فشل تثبيت $pkg"
-      echo "$pkg" >> "$MISSING_PKGS_FILE"
-    fi
+    if paru -Qi "$pkg" &>/dev/null; then ok "$pkg مثبت بالفعل"; continue; fi
+    paru -S --needed --noconfirm "$pkg" || { warn "فشل تثبيت $pkg"; echo "$pkg" >> "$MISSING_PKGS_FILE"; }
   done
 }
 
@@ -110,141 +93,109 @@ ok "تم تفعيل Color و ILoveCandy"
 
 # ---- تحديث قاعدة بيانات pacman ----
 step "تحديث قاعدة بيانات الحزم"
-sudo pacman -Sy --noconfirm || warn "⚠ تحديث قاعدة بيانات pacman فشل، استمر على مسؤوليتك"
+sudo pacman -Sy --noconfirm || warn "فشل تحديث قاعدة بيانات pacman"
 
 # ---- تحديث النظام & Flatpak ----
-step "تحديث النظام وإضافة Flathub"
 install_pacman_checked flatpak
 sudo pacman -Syu --noconfirm || true
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || true
 flatpak update --appstream -y || true
 
-# ========================= تثبيت الحزم حسب الأولوية =========================
+# ========================= تثبيت الحزم حسب الفئة =========================
 
-# ---- المرحلة 1: الحزم الأساسية للنظام ----
-step "تثبيت الحزم الأساسية للنظام"
+# ---- الأساسيات (Essential) ----
+# كل الحزم الضرورية للنظام والبرامج المهمة
 install_pacman_checked \
-  archlinux-keyring git base-devel pacman-contrib \
-  noto-fonts noto-fonts-emoji ttf-dejavu ttf-liberation
-ok "تم تثبيت الحزم الأساسية للنظام"
+  mpv \               # وسائط
+  git \               # تطوير
+  base-devel \        # تطوير
+  pacman-contrib \    # نظامي
+  noto-fonts \        # خطوط
+  noto-fonts-emoji \  # خطوط
+  ttf-dejavu \        # خطوط
+  ttf-liberation \    # خطوط
+  networkmanager \    # نظامي
+  ufw \               # نظامي
+  power-profiles-daemon \ # نظامي
+  ntp \               # نظامي
+  cups \              # نظامي
+  cups-pdf \          # نظامي
+  system-config-printer \ # نظامي
+  xdg-user-dirs \     # نظامي
+  partitionmanager \  # نظامي
+  wget \              # أداة مساعدة
+  curl \              # أداة مساعدة
+  btrfs-progs \       # ملفات
+  xfsprogs \          # ملفات
+  f2fs-tools \        # ملفات
+  exfatprogs \        # ملفات
+  ntfs-3g \           # ملفات
+  dosfstools \        # ملفات
+  mtools \            # ملفات
+  udftools \          # ملفات
+  unzip \             # ضغط
+  zip \               # ضغط
+  unrar               # ضغط
+ok "تم تثبيت الحزم الأساسية"
 
-# ---- المرحلة 2: إدارة النظام والخدمات ----
-step "تثبيت أدوات إدارة النظام والخدمات"
-install_pacman_checked \
-  networkmanager ufw power-profiles-daemon ntp \
-  cups cups-pdf system-config-printer
-ok "تم تثبيت أدوات إدارة النظام والخدمات"
+# Flatpak أساسي
+flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim \ # وسائط
+flatpak install -y flathub org.nickvision.tubeconverter             # وسائط
 
-# ---- المرحلة 3: أدوات مساعدة للنظام والتخصيص ----
-step "تثبيت الأدوات المساعدة للنظام"
-install_pacman_checked \
-  xdg-user-dirs partitionmanager wget curl
-ok "تم تثبيت الأدوات المساعدة للنظام"
-
-# ---- المرحلة 4: دعم صيغ الملفات والأقراص ----
-step "تثبيت أدوات دعم صيغ الملفات والأقراص"
-install_pacman_checked \
-  btrfs-progs xfsprogs f2fs-tools exfatprogs ntfs-3g \
-  dosfstools mtools udftools unzip zip unrar
-ok "تم تثبيت دعم صيغ الملفات والأقراص"
-
-# ---- المرحلة 5: برامج الوسائط والتسلية ----
-step "تثبيت برامج الوسائط"
-install_pacman_checked \
-  mpv mkvtoolnix-gui fastfetch qbittorrent gwenview discord
-ok "تم تثبيت برامج الوسائط والتسلية"
-
-# ---- المرحلة 6: ألعاب وتحسينات الأداء ----
-step "تثبيت أدوات الألعاب وتحسين الأداء"
-install_pacman_checked \
-  lutris gamescope lib32-mangohud gamemode lib32-gamemode goverlay
-ok "تم تثبيت أدوات الألعاب"
-
-# ---- المرحلة 7: برامج Flatpak ----
-step "تثبيت برامج Flatpak"
-flatpak install -y flathub com.github.iwalton3.jellyfin-mpv-shim || true
-flatpak install -y flathub org.nickvision.tubeconverter || true
-ok "تم تثبيت برامج Flatpak"
-
-# ---- المرحلة 8: حزم AUR حسب الأولوية ----
+# AUR أساسي
 ensure_paru
-
-# المرحلة 1: أساسية لتشغيل برامج مهمة
-step "تثبيت AUR الأساسية لتشغيل برامج مهمة"
 install_aur_failsafe \
-  zen-browser-bin \
- ffmpegthumbs-git \
-ok "تم تثبيت الحزم الأساسية لتشغيل البرامج"
+  zen-browser-bin \       # تصفح
+  ffmpegthumbs-git        # وسائط
+ok "تم تثبيت الحزم الأساسية من AUR"
 
-# المرحلة 2: تحسينات وأدوات مساعدة
-step "تثبيت AUR تحسينات وأدوات مساعدة"
+# ---- الاختيارية (Optional) ----
+# الحزم الترفيهية أو إضافات اختيارية
+install_pacman_checked \
+  mkvtoolnix-gui \    # وسائط
+  fastfetch \         # نظامي
+  qbittorrent \       # وسائط
+  gwenview \          # وسائط
+  discord \           # تواصل
+  lutris \            # ألعاب
+  gamescope \         # ألعاب
+  lib32-mangohud \    # ألعاب
+  gamemode \           # ألعاب
+  lib32-gamemode \    # ألعاب
+  goverlay            # ألعاب
+ok "تم تثبيت الحزم الاختيارية"
+
 install_aur_failsafe \
-  autosubsync-bin \
-  renamemytvseries-qt-bin \
-  subtitlecomposer
-  bauh
-ok "تم تثبيت الحزم المساعدة"
-
-# المرحلة 3: برامج تطوير وإدارة
-step "تثبيت AUR برامج تطوير وإدارة"
-install_aur_failsafe \
-  visual-studio-code-bin \
-ok "تم تثبيت برامج التطوير والإدارة"
-
-# المرحلة 4: برامج اختيارية وترفيهية
-step "تثبيت AUR برامج اختيارية وترفيهية"
-install_aur_failsafe \
-  spotify \
-  flatseal
-  jellyfin-media-player \
-  proton-ge-custom-bin
-ok "تم تثبيت البرامج الاختيارية والترفيهية"
-
-# ---- SpotX ----
-step "تعديل Spotify ب SpotX"
-bash <(curl -sSL https://spotx-official.github.io/run.sh) || warn "فشل تشغيل SpotX"
-ok "Spotify اتظبط ب SpotX"
+  autosubsync-bin \       # وسائط
+  renamemytvseries-qt-bin \ # وسائط
+  subtitlecomposer \       # وسائط
+  bauh \                   # إدارة برامج
+  visual-studio-code-bin \ # تطوير
+  spotify \                # ترفيه
+  flatseal \               # أداة مساعدة
+  jellyfin-media-player \  # وسائط
+  proton-ge-custom-bin     # ألعاب
+ok "تم تثبيت الحزم الاختيارية من AUR"
 
 # ---- تفعيل الخدمات الأساسية ----
-step "تفعيل الخدمات"
 SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer cups.service)
 for svc in "${SERVICES[@]}"; do enable_service "$svc"; done
 sudo ufw enable || true
 sudo timedatectl set-ntp true || true
 
 # ---- تنظيف النظام Ultimate Cleanup ----
-step "تشغيل سكربت التنظيف Ultimate Cleanup"
-PACMAN_CACHE_DAYS=30
-JOURNAL_DAYS=7
-TMP_DAYS=7
-LOG_SIZE_LIMIT=100M
-
+step "تشغيل التنظيف النهائي"
 sudo pacman -Syu --noconfirm
-sudo find /var/cache/pacman/pkg/ -type d -name "download-*" -exec rm -rf {} + 2>/dev/null
-sudo find /var/cache/pacman/pkg/ -type f -exec rm -f {} + 2>/dev/null
-sudo paccache -r -k "${PACMAN_CACHE_DAYS}" || true
-
+sudo paccache -r -k 30 || true
 ORPHANS=$(pacman -Qdtq || true)
-if [ -n "$ORPHANS" ]; then
-    sudo pacman -Rns --noconfirm $ORPHANS
-fi
-
-if command -v paru &>/dev/null; then
-    rm -rf ~/.cache/paru/* ~/.cache/paru/clone ~/.cache/paru/diff || true
-    paru -Sc --noconfirm || true
-fi
-
-if command -v flatpak &>/dev/null; then
-    flatpak uninstall --unused --assumeyes || true
-    flatpak repair || true
-fi
-
-sudo journalctl --vacuum-time="${JOURNAL_DAYS}d" || true
-sudo find /tmp -type f -mtime +${TMP_DAYS} -delete || true
-sudo find /var/tmp -type f -mtime +${TMP_DAYS} -delete || true
-sudo find /var/log -type f -size +${LOG_SIZE_LIMIT} -exec rm -f {} + 2>/dev/null || true
-
-ok "✅ انتهى تنظيف النظام Ultimate Non-Interactive!"
+[[ -n "$ORPHANS" ]] && sudo pacman -Rns --noconfirm $ORPHANS
+[[ -d ~/.cache/paru ]] && rm -rf ~/.cache/paru/* || true
+flatpak uninstall --unused --assumeyes || true
+sudo journalctl --vacuum-time="7d" || true
+sudo find /tmp -type f -mtime +7 -delete || true
+sudo find /var/tmp -type f -mtime +7 -delete || true
+sudo find /var/log -type f -size +100M -exec rm -f {} + 2>/dev/null || true
+ok "✅ تنظيف النظام خلص"
 
 # ---- نهاية ----
 END_TIME=$(date +'%F %T')
