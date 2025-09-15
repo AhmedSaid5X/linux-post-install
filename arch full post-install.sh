@@ -74,7 +74,7 @@ bash <(curl -sSL https://spotx-official.github.io/run.sh)
 echo "✅ تم تثبيت Spotify"
 
 # ------------------------------
-# 8️⃣ تثبيت الحزم الاختيارية (pacman + AUR + Flatpak) بدون تدخل
+# 8️⃣ تثبيت كل الحزم الاختيارية مع سؤال واحد
 # ------------------------------
 pacman_optional=(
     "mkvtoolnix-gui" "discord" "lutris" "gamescope"
@@ -88,13 +88,25 @@ flatpak_optional=(
     "com.github.iwalton3.jellyfin-mpv-shim" "org.nickvision.tubeconverter"
 )
 
-echo "⚡ تثبيت كل الحزم الاختيارية بدون أي سؤال..."
-sudo pacman -S --needed --noconfirm "${pacman_optional[@]}"
-paru -S --needed --noconfirm "${aur_optional[@]}"
-for pkg in "${flatpak_optional[@]}"; do
-    flatpak install -y flathub "$pkg" || true
-done
-echo "✅ تم تثبيت كل الحزم الاختيارية"
+read -p "⚡ هل تريد تثبيت كل الحزم الاختيارية؟ (y/n): " ans
+if [[ "$ans" =~ ^[Yy]$ ]]; then
+    echo "⚡ جاري تثبيت الحزم الاختيارية..."
+
+    # pacman
+    sudo pacman -S --needed --noconfirm "${pacman_optional[@]}"
+
+    # AUR
+    paru -S --needed --noconfirm "${aur_optional[@]}"
+
+    # Flatpak
+    for pkg in "${flatpak_optional[@]}"; do
+        flatpak install -y flathub "$pkg" || true
+    done
+
+    echo "✅ تم تثبيت كل الحزم الاختيارية"
+else
+    echo "⚡ تم تخطي تثبيت الحزم الاختيارية"
+fi
 
 # ------------------------------
 # 9️⃣ تفعيل الخدمات تلقائيًا
