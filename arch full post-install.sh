@@ -179,6 +179,15 @@ else
   warn "معالج غير معروف، microcode متثبتش"
 fi
 
+# تحديث bootloader بعد microcode
+if [[ -d /boot/grub ]]; then
+  step "تحديث grub config"
+  sudo grub-mkconfig -o /boot/grub/grub.cfg || warn "فشل تحديث grub"
+elif [[ -d /boot/loader ]]; then
+  step "تحديث systemd-boot"
+  sudo bootctl update || warn "فشل تحديث systemd-boot"
+fi
+
 # ---- الخدمات الأساسية ----
 step "تفعيل الخدمات"
 SERVICES=(ufw.service power-profiles-daemon.service NetworkManager.service fstrim.timer paccache.timer bluetooth.service cups.service)
@@ -194,13 +203,20 @@ ZCONF="/etc/systemd/zram-generator.conf"
 
 # ---- sysctl ----
 step "ضبط sysctl"
-sudo tee /etc/sysctl.d/99-tuned.conf >/dev/null <<'EOF'
+TOTAL_RAM_MB=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
+if (( TOTAL_RAM_MB < 8000000 )); then
+  SWAPPINESS=60
+else
+  SWAPPINESS=10
+fi
+
+sudo tee /etc/sysctl.d/99-tuned.conf >/dev/null <<EOF
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 vm.vfs_cache_pressure = 75
 EOF
 sudo sysctl --system >/dev/null 2>&1 || true
-ok "تم"
+ok "تم ضبط sysctl (swappiness=$SWAPPINESS)"
 
 # ---- تثبيت حزم من AUR ----
 ensure_paru
