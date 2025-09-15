@@ -2,8 +2,6 @@
 set -euo pipefail
 
 START_TIME=$(date +'%F %T')
-LOG_FILE="$HOME/arch-post-install.log"
-exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "🟢 بدء السكربت Non-Interactive: $START_TIME"
 
