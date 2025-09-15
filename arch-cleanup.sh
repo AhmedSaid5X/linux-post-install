@@ -5,7 +5,7 @@ set -euo pipefail
 # Arch Ultimate Cleanup - Fully Non-Interactive
 # =========================
 
-PACMAN_CACHE_DAYS=30
+PACMAN_KEEP_VERSIONS=3
 JOURNAL_DAYS=7
 TMP_DAYS=7
 LOG_SIZE_LIMIT=100M
