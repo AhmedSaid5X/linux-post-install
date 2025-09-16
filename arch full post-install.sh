@@ -5,6 +5,19 @@ trap 'echo "❌ حدث خطأ أثناء تنفيذ السكربت"; exit 1' ERR
 START_TIME=$(date +'%F %T')
 
 # =========================
+# Fix pacman lock
+# =========================
+if pgrep -x pacman >/dev/null; then
+    echo "❌ فيه عملية pacman شغالة دلوقتي — اقفلها الأول أو استنى تخلص."
+    exit 1
+fi
+
+if [[ -f /var/lib/pacman/db.lck ]]; then
+    echo "⚠️ لقينا pacman lock قديم — هنشيله دلوقتي..."
+    sudo rm -f /var/lib/pacman/db.lck
+fi
+
+# =========================
 # Functions
 # =========================
 step() { echo -e "\n🔹 $1..."; }
@@ -158,11 +171,11 @@ echo "🧹 بدء تنظيف النظام Ultimate Non-Interactive على Arch L
 echo "⬆ تحديث النظام..."
 sudo pacman -Syu --noconfirm
 
-# تنظيف pacman cache (حذف الملفات والمجلدات التالفة بدون تحذيرات)
+# تنظيف pacman cache
 echo "🗑 تنظيف pacman cache..."
 sudo find /var/cache/pacman/pkg/ -type d -name "download-*" -exec rm -rf {} + 2>/dev/null
 sudo find /var/cache/pacman/pkg/ -type f -exec rm -f {} + 2>/dev/null
-sudo paccache -r -k "${PACMAN_CACHE_DAYS}" || true
+sudo paccache -r -k "${PACMAN_KEEP_VERSIONS}" || true
 
 # إزالة الحزم orphan
 ORPHANS=$(pacman -Qdtq || true)
@@ -171,7 +184,7 @@ if [ -n "$ORPHANS" ]; then
     sudo pacman -Rns --noconfirm $ORPHANS
 fi
 
-# تنظيف AUR helper (paru) بالكامل بدون أي سؤال
+# تنظيف AUR helper (paru)
 if command -v paru &>/dev/null; then
     echo "🗑 تنظيف Paru cache بالكامل..."
     rm -rf ~/.cache/paru/* ~/.cache/paru/clone ~/.cache/paru/diff || true
